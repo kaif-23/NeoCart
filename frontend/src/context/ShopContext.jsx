@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
-import { authDataContext } from './authContext'
+import { authDataContext } from './AuthContext'
 import axios from 'axios'
 import { userDataContext } from './UserContext'
 import { toast } from 'react-toastify'
@@ -74,78 +74,92 @@ function ShopContext({children}) {
 
 
     const getUserCart = async () => {
+      if (!userData) {
+        return;
+      }
       try {
         const result = await axios.post(serverUrl + '/api/cart/get',{},{ withCredentials: true })
-
-      setCartItem(result.data)
-    } catch (error) {
-      console.log(error)
-     
-
-
-    }
-      
-    }
-    const updateQuantity = async (itemId , size , quantity) => {
-      let cartData = structuredClone(cartItem);
-    cartData[itemId][size] = quantity
-    setCartItem(cartData)
-
-    if (userData) {
-      try {
-        await axios.post(serverUrl + "/api/cart/update", { itemId, size, quantity }, { withCredentials: true })
+        setCartItem(result.data)
       } catch (error) {
         console.log(error)
-        
       }
     }
-      
-    }
-     const getCartCount = () => {
-    let totalCount = 0;
-    for (const items in cartItem) {
-      for (const item in cartItem[items]) {
-        try {
-          if (cartItem[items][item] > 0) {
-            totalCount += cartItem[items][item]
-          }
-        } catch (error) {
 
+    const updateQuantity = async (itemId , size , quantity) => {
+      let cartData = structuredClone(cartItem);
+      cartData[itemId][size] = quantity
+      setCartItem(cartData)
+
+      if (userData) {
+        try {
+          await axios.post(serverUrl + "/api/cart/update", { itemId, size, quantity }, { withCredentials: true })
+        } catch (error) {
+          console.log(error)
         }
       }
     }
-    return totalCount
-  }
 
-  const getCartAmount = () => {
-  let totalAmount = 0;
-    for (const items in cartItem) {
-      let itemInfo = products.find((product) => product._id === items);
-      for (const item in cartItem[items]) {
-        try {
-          if (cartItem[items][item] > 0) {
-            totalAmount += itemInfo.price * cartItem[items][item];
+    const getCartCount = () => {
+      let totalCount = 0;
+      for (const items in cartItem) {
+        for (const item in cartItem[items]) {
+          try {
+            if (cartItem[items][item] > 0) {
+              totalCount += cartItem[items][item]
+            }
+          } catch (error) {
+            console.log("Error counting cart items:", error)
           }
-        } catch (error) {
-
         }
       }
+      return totalCount
     }
-    return totalAmount
-    
-  }
 
-    useEffect(()=>{
-     getProducts()
-    },[])
+    const getCartAmount = () => {
+      let totalAmount = 0;
+      for (const items in cartItem) {
+        let itemInfo = products.find((product) => product._id === items);
+        if (itemInfo) {
+          for (const item in cartItem[items]) {
+            try {
+              if (cartItem[items][item] > 0) {
+                totalAmount += itemInfo.price * cartItem[items][item];
+              }
+            } catch (error) {
+              console.log("Error calculating cart amount:", error)
+            }
+          }
+        }
+      }
+      return totalAmount
+    }
 
     useEffect(() => {
-    getUserCart()
-  },[])
+      const fetchProducts = async () => {
+        try {
+          let result = await axios.get(serverUrl + "/api/product/list")
+          console.log(result.data)
+          setProducts(result.data)
+        } catch (error) {
+          console.log(error)
+        }
+      }
+      fetchProducts()
+    }, [])
 
-
-
-
+    useEffect(() => {
+      if (userData) {
+        const fetchCart = async () => {
+          try {
+            const result = await axios.post(serverUrl + '/api/cart/get',{},{ withCredentials: true })
+            setCartItem(result.data)
+          } catch (error) {
+            console.log(error)
+          }
+        }
+        fetchCart()
+      }
+    },[userData])
 
 
     let value = {
