@@ -17,7 +17,7 @@ let app = express()
 app.use(express.json())
 app.use(cookieParser())
 app.use(cors({
-   origin: ["https://neocart-frontend.onrender.com", "http://localhost:5174"],
+   origin: ["https://neocart-frontend.onrender.com", "https://neocart-admin.onrender.com"],
    credentials: true
 }))
 
