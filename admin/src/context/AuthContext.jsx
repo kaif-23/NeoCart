@@ -2,7 +2,7 @@ import React, { createContext } from 'react'
 
 export const authDataContext = createContext()
 function AuthContext({children}) {
-    let serverUrl = "https://blogify-backend-f0da.onrender.com"
+    let serverUrl = "https://neocart-backend.onrender.com"
 
     let value = {
       serverUrl
