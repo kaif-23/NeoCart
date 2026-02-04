@@ -1,7 +1,7 @@
 import React from 'react'
 
 function NewLetterBox() {
-    const handleSubmit = ()=>{
+    const handleSubmit = (e)=>{
         e.preventDefault()
     }
   return (
