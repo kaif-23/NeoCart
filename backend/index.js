@@ -14,7 +14,7 @@ dotenv.config()
 let port = process.env.PORT || 6000
 let app = express()
 
-// ✅ CORS CONFIG FIRST
+//  CORS CONFIG FIRST
 const allowedOrigins = [
   "https://neocart-frontend.onrender.com",
   "https://neocart-admin.onrender.com"
@@ -33,8 +33,9 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization"]
 }))
 
-// ✅ HANDLE PREFLIGHT REQUESTS
-app.options("*", cors())
+//  HANDLE PREFLIGHT REQUESTS
+app.options("/*", cors())
+
 
 app.use(express.json())
 app.use(cookieParser())
