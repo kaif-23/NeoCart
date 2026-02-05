@@ -1,5 +1,6 @@
 import { getAuth, GoogleAuthProvider } from "firebase/auth"
 import { initializeApp } from "firebase/app";
+
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_APIKEY,
   authDomain: "login-neocart.firebaseapp.com",

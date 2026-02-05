@@ -24,6 +24,8 @@ app.use(
     origin: [
       "https://neocart-frontend.onrender.com",
       "https://neocart-admin.onrender.com",
+      "http://localhost:5173",
+      "http://localhost:5174",
     ],
     credentials: true,
   })
@@ -38,6 +40,6 @@ app.use("/api/order", orderRoutes);
 
 // Start Server
 app.listen(port, () => {
-  console.log("Hello From Server");
+  console.log("Hello From Server", port);
   connectDb();
 });
