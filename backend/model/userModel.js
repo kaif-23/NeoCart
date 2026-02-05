@@ -1,24 +1,26 @@
 import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema({
-    name:{
-        type:String,
-        required:true
+    name: {
+        type: String,
+        required: true
     },
-    email:{
-        type:String,
-        required:true,
-        unique:true
+    email: {
+        type: String,
+        required: true,
+        unique: true
     },
-    password:{
-        type:String
+    password: {
+        type: String
     },
-    cartData:{
-        type:Object,
-        default:{}
+    cartData: {
+        type: Object,
+        default: {}
     }
-},{timestamps:true , minimize:false})
+}, { timestamps: true, minimize: false })
 
-const User = mongoose.model("User",userSchema)
+// No need to add email index - 'unique: true' already creates one!
+
+const User = mongoose.model("User", userSchema)
 
 export default User
