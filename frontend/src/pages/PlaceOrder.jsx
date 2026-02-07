@@ -17,6 +17,11 @@ function PlaceOrder() {
     let [loading ,setLoading] = useState(false)
     let [stockIssues, setStockIssues] = useState([])
     let [showStockWarning, setShowStockWarning] = useState(false)
+    
+    // Saved addresses
+    let [savedAddresses, setSavedAddresses] = useState([])
+    let [selectedAddressId, setSelectedAddressId] = useState(null)
+    let [showAddressSelect, setShowAddressSelect] = useState(false)
 
     let [formData,setFormData] = useState({
         firstName:'',
@@ -29,6 +34,52 @@ function PlaceOrder() {
         country:'',
         phone:''
     })
+
+    // Fetch saved addresses on mount
+    useEffect(() => {
+        fetchSavedAddresses()
+    }, [])
+
+    const fetchSavedAddresses = async () => {
+        try {
+            const response = await axios.get(`${serverUrl}/api/profile/addresses`, {
+                withCredentials: true
+            })
+            
+            if (response.data.success) {
+                setSavedAddresses(response.data.addresses)
+                
+                // Auto-fill default address if exists
+                const defaultAddress = response.data.addresses.find(addr => addr.isDefault)
+                if (defaultAddress) {
+                    fillFormWithAddress(defaultAddress)
+                    setSelectedAddressId(defaultAddress._id)
+                }
+            }
+        } catch (error) {
+            console.log('Failed to fetch addresses:', error)
+        }
+    }
+
+    const fillFormWithAddress = (address) => {
+        setFormData({
+            firstName: address.firstName,
+            lastName: address.lastName,
+            email: formData.email, // Keep existing email
+            street: address.addressLine1 + (address.addressLine2 ? ', ' + address.addressLine2 : ''),
+            city: address.city,
+            state: address.state,
+            pinCode: address.zipCode,
+            country: address.country,
+            phone: address.phone
+        })
+    }
+
+    const handleAddressSelect = (address) => {
+        fillFormWithAddress(address)
+        setSelectedAddressId(address._id)
+        setShowAddressSelect(false)
+    }
 
     const onChangeHandler = (e)=>{
         const name = e.target.name;
@@ -267,9 +318,50 @@ function PlaceOrder() {
             
             <div className='lg:w-[50%] w-[100%] h-[100%] flex items-center justify-center  lg:mt-[0px] mt-[90px] '>
                 <form action="" onSubmit={onSubmitHandler} className='lg:w-[70%] w-[95%] lg:h-[70%] h-[100%]'>
-                    <div className='py-[10px]'>
+                    <div className='py-[10px] flex items-center justify-between'>
                         <Title text1={'DELIVERY'} text2={'INFORMATION'}/>
+                        {savedAddresses.length > 0 && (
+                            <button
+                                type="button"
+                                onClick={() => setShowAddressSelect(!showAddressSelect)}
+                                className='text-sm bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors'
+                            >
+                                {showAddressSelect ? 'Hide' : 'Saved Addresses'}
+                            </button>
+                        )}
                     </div>
+
+                    {/* Saved Addresses Dropdown */}
+                    {showAddressSelect && savedAddresses.length > 0 && (
+                        <div className='w-full bg-slate-800 rounded-lg p-4 mb-4 max-h-[300px] overflow-y-auto'>
+                            <h3 className='text-white text-lg font-semibold mb-3'>Select Address</h3>
+                            <div className='space-y-2'>
+                                {savedAddresses.map((address) => (
+                                    <div
+                                        key={address._id}
+                                        onClick={() => handleAddressSelect(address)}
+                                        className={`p-3 rounded-lg cursor-pointer transition-all ${
+                                            selectedAddressId === address._id
+                                                ? 'bg-blue-600 text-white'
+                                                : 'bg-slate-700 text-white hover:bg-slate-600'
+                                        }`}
+                                    >
+                                        <div className='flex items-center justify-between mb-1'>
+                                            <span className='font-semibold'>{address.label}</span>
+                                            {address.isDefault && (
+                                                <span className='text-xs bg-green-500 px-2 py-1 rounded'>Default</span>
+                                            )}
+                                        </div>
+                                        <p className='text-sm'>{address.firstName} {address.lastName}</p>
+                                        <p className='text-sm'>{address.addressLine1}</p>
+                                        <p className='text-sm'>{address.city}, {address.state} {address.zipCode}</p>
+                                        <p className='text-sm'>{address.phone}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     <div className='w-[100%] h-[70px] flex items-center justify-between px-[10px]'>
                         <input type="text" placeholder='First name' className='w-[48%] h-[50px] rounded-md bg-slate-700 placeholder:text-[white] text-[18px] px-[20px] shadow-sm shadow-[#343434]'required  onChange={onChangeHandler} name='firstName' value={formData.firstName}/>
                         <input type="text" placeholder='Last name' className='w-[48%] h-[50px] rounded-md shadow-sm shadow-[#343434] bg-slate-700 placeholder:text-[white] text-[18px] px-[20px]' required onChange={onChangeHandler} name='lastName' value={formData.lastName} />

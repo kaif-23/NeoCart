@@ -2,6 +2,8 @@ import User from "../model/userModel.js";
 import validator from "validator"
 import bcrypt from "bcryptjs"
 import { genToken, genToken1 } from "../config/token.js";
+import crypto from "crypto";
+import { sendPasswordResetEmail } from "../config/emailService.js";
 
 
 export const registration = async (req, res) => {
@@ -105,23 +107,203 @@ export const googleLogin = async (req, res) => {
 export const adminLogin = async (req, res) => {
     try {
         let { email, password } = req.body
-        if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
-            let token = await genToken1(email)
-            res.cookie("token", token, {
-                httpOnly: true,
-                secure: true,
-                sameSite: "none",
-                maxAge: 1 * 24 * 60 * 60 * 1000
-            })
-            return res.status(200).json(token)
+
+        // Validate input
+        if (!email || !password) {
+            return res.status(400).json({ message: "Email and password are required" })
         }
-        return res.status(400).json({ message: "Invaild creadintials" })
+
+        // Find user with admin or superadmin role
+        let user = await User.findOne({
+            email,
+            isActive: true,
+            role: { $in: ['admin', 'superadmin'] }
+        })
+
+        if (!user) {
+            return res.status(401).json({ message: "Invalid credentials or access denied" })
+        }
+
+        // Validate password
+        if (!user.password) {
+            return res.status(401).json({ message: "Invalid credentials" })
+        }
+
+        let isMatch = await bcrypt.compare(password, user.password)
+        if (!isMatch) {
+            return res.status(401).json({ message: "Invalid credentials" })
+        }
+
+        // Update last login
+        user.lastLogin = new Date()
+        await user.save()
+
+        // Generate token with 8 hour expiry
+        let token = await genToken(user._id)
+        res.cookie("token", token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: "strict",
+            maxAge: 8 * 60 * 60 * 1000 // 8 hours
+        })
+
+        return res.status(200).json({
+            message: "Login successful",
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role
+            }
+        })
 
     } catch (error) {
-        console.log("AdminLogin error")
-        return res.status(500).json({ message: `AdminLogin error ${error}` })
-
+        return res.status(500).json({ message: `Login error: ${error.message}` })
     }
-
 }
 
+// Forgot password - send reset email
+export const forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        if (!email || !validator.isEmail(email)) {
+            return res.status(400).json({ success: false, message: "Valid email is required" });
+        }
+
+        const user = await User.findOne({ email, isActive: true });
+
+        // Don't reveal if user exists (security best practice)
+        if (!user) {
+            return res.json({
+                success: true,
+                message: "If an account exists with this email, you will receive a password reset link"
+            });
+        }
+
+        // Check if user has password (Google auth users might not)
+        if (!user.password) {
+            return res.status(400).json({
+                success: false,
+                message: "This account uses social login. Please sign in with Google."
+            });
+        }
+
+        // Generate reset token
+        const resetToken = crypto.randomBytes(32).toString('hex');
+
+        // Hash token before storing
+        const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+
+        // Store hashed token and expiry (30 minutes)
+        user.resetPasswordToken = hashedToken;
+        user.resetPasswordExpires = Date.now() + 30 * 60 * 1000; // 30 minutes
+        await user.save();
+
+        // Send email with unhashed token
+        const emailResult = await sendPasswordResetEmail(email, resetToken, user.name);
+
+        if (!emailResult.success) {
+            console.error('Failed to send reset email:', emailResult.error);
+            return res.status(500).json({
+                success: false,
+                message: "Failed to send reset email. Please try again later."
+            });
+        }
+
+        res.json({
+            success: true,
+            message: "Password reset link has been sent to your email"
+        });
+
+    } catch (error) {
+        console.error('Forgot password error:', error);
+        res.status(500).json({ success: false, message: "Server error. Please try again later." });
+    }
+};
+
+// Verify reset token validity
+export const verifyResetToken = async (req, res) => {
+    try {
+        const { token } = req.params;
+
+        if (!token) {
+            return res.status(400).json({ success: false, message: "Token is required" });
+        }
+
+        // Hash the token to compare with stored hash
+        const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+        const user = await User.findOne({
+            resetPasswordToken: hashedToken,
+            resetPasswordExpires: { $gt: Date.now() }
+        });
+
+        if (!user) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid or expired reset token"
+            });
+        }
+
+        res.json({
+            success: true,
+            message: "Token is valid",
+            email: user.email
+        });
+
+    } catch (error) {
+        console.error('Verify reset token error:', error);
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+};
+
+// Reset password with token
+export const resetPassword = async (req, res) => {
+    try {
+        const { token } = req.params;
+        const { newPassword } = req.body;
+
+        if (!token || !newPassword) {
+            return res.status(400).json({ success: false, message: "Token and new password are required" });
+        }
+
+        if (newPassword.length < 8) {
+            return res.status(400).json({ success: false, message: "Password must be at least 8 characters" });
+        }
+
+        // Hash the token to compare with stored hash
+        const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+        const user = await User.findOne({
+            resetPasswordToken: hashedToken,
+            resetPasswordExpires: { $gt: Date.now() }
+        });
+
+        if (!user) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid or expired reset token"
+            });
+        }
+
+        // Hash new password
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(newPassword, salt);
+
+        // Clear reset token fields
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpires = undefined;
+
+        await user.save();
+
+        res.json({
+            success: true,
+            message: "Password has been reset successfully. You can now login with your new password."
+        });
+
+    } catch (error) {
+        console.error('Reset password error:', error);
+        res.status(500).json({ success: false, message: "Server error. Please try again later." });
+    }
+};

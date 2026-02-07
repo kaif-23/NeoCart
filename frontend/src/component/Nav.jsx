@@ -171,11 +171,12 @@ function Nav() {
         </div>}
 
        {/* Profile Dropdown */}
-       {showProfile && <div className='absolute w-[220px] h-[150px] bg-[#000000d7] top-[110%] right-[4%] border-[1px] border-[#aaa9a9] rounded-[10px] z-10 shadow-xl'>
+       {showProfile && <div className='absolute w-[220px] h-[180px] bg-[#000000d7] top-[110%] right-[4%] border-[1px] border-[#aaa9a9] rounded-[10px] z-10 shadow-xl'>
         <ul className='w-[100%] h-[100%] flex items-start justify-around flex-col text-[17px] py-[10px] text-[white]'>
             {!userData && <li className='w-[100%] hover:bg-[#2f2f2f] px-[15px] py-[10px] cursor-pointer transition-colors' onClick={()=>{
                 navigate("/login");setShowProfile(false)
             }}>Login</li>}
+            {userData && <li className='w-[100%] hover:bg-[#2f2f2f] px-[15px] py-[10px] cursor-pointer transition-colors' onClick={()=>{navigate("/profile");setShowProfile(false)}}>Profile</li>}
             {userData && <li className='w-[100%] hover:bg-[#2f2f2f] px-[15px] py-[10px] cursor-pointer transition-colors' onClick={()=>{handleLogout();setShowProfile(false)}}>LogOut</li>}
             <li className='w-[100%] hover:bg-[#2f2f2f] px-[15px] py-[10px] cursor-pointer transition-colors'onClick={()=>{navigate("/order");setShowProfile(false)}} >Orders</li>
             <li className='w-[100%] hover:bg-[#2f2f2f] px-[15px] py-[10px] cursor-pointer transition-colors'onClick={()=>{navigate("/about");setShowProfile(false)}} >About</li>
@@ -216,6 +217,9 @@ function Nav() {
                     <li className='hover:bg-[#88d9ee46] cursor-pointer bg-[#000000c9] text-white py-[12px] px-[20px] rounded-xl transition-all flex items-center gap-[10px]' onClick={() => handleNavClick("/about")}>
                         <BsInfoCircle className='w-[22px] h-[22px]'/> ABOUT
                     </li>
+                    {userData && <li className='hover:bg-[#88d9ee46] cursor-pointer bg-[#000000c9] text-white py-[12px] px-[20px] rounded-xl transition-all flex items-center gap-[10px]' onClick={() => handleNavClick("/profile")}>
+                        <FaCircleUser className='w-[22px] h-[22px]'/> PROFILE
+                    </li>}
                     <li className='hover:bg-[#88d9ee46] cursor-pointer bg-[#000000c9] text-white py-[12px] px-[20px] rounded-xl transition-all flex items-center gap-[10px]' onClick={() => handleNavClick("/order")}>
                         <MdShoppingBag className='w-[24px] h-[24px]'/> ORDERS
                     </li>

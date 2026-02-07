@@ -1,4 +1,4 @@
-import uploadOnCloudinary from "../config/cloudinary.js"
+import { uploadOnCloudinary } from "../config/cloudinary.js"
 import Product from "../model/productModel.js"
 
 

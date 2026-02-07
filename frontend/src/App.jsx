@@ -13,6 +13,9 @@ import ProductDetail from './pages/ProductDetail'
 import Cart from './pages/Cart'
 import PlaceOrder from './pages/PlaceOrder'
 import Order from './pages/Order'
+import Profile from './pages/Profile'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import { ToastContainer } from 'react-toastify';
 import NotFound from './pages/NotFound'
 import Ai from './component/Ai'
@@ -37,11 +40,18 @@ function App() {
           : (<Registration/>)}
         />
 
+        {/* Password reset routes - public */}
+        <Route path='/forgot-password' element={<ForgotPassword />} />
+        <Route path='/reset-password/:token' element={<ResetPassword />} />
+
         {/* Public routes - accessible without login */}
         <Route path='/' element={<Home/>} />
         <Route path='/about' element={<About/>} />
         <Route path='/collection' element={<Collections/>} />
         <Route path='/product' element={<Product/>} />
+        <Route path='/profile' 
+          element={userData ? <Profile/> : <Navigate to="/login" state={{from: location.pathname}} />}
+        />
         <Route path='/contact' element={<Contact/>} />
         <Route path='/productdetail/:productId' element={<ProductDetail/>} />
 
