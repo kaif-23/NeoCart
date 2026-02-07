@@ -94,7 +94,6 @@ function Add() {
         toast.success("Product Added Successfully")
       }
 
-      console.log(result.data)
       setLoading(false)
 
       if(result.data){
@@ -120,7 +119,6 @@ function Add() {
 
       
     } catch (error) {
-       console.log(error)
        setLoading(false)
        toast.error(editMode ? "Update Product Failed" : "Add Product Failed")
     }

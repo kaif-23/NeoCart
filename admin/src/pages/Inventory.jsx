@@ -1,9 +1,10 @@
-import React, { useContext, useEffect, useState } from 'react'
+import React, { useContext, useEffect, useState, useCallback } from 'react'
 import Nav from '../component/Nav'
 import Sidebar from '../component/Sidebar'
 import { authDataContext } from '../context/AuthContext'
 import axios from 'axios'
 import { toast } from 'react-toastify'
+import Loading from '../component/Loading'
 
 function Inventory() {
   const [list, setList] = useState([])
@@ -12,18 +13,20 @@ function Inventory() {
   const [searchTerm, setSearchTerm] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('All')
   const [stockFilter, setStockFilter] = useState('All')
+  const [loading, setLoading] = useState(false)
   const { serverUrl } = useContext(authDataContext)
 
-  const fetchList = async () => {
+  const fetchList = useCallback(async () => {
+    setLoading(true)
     try {
       const result = await axios.get(serverUrl + "/api/product/list")
-      console.log("📦 Products fetched:", result.data.length)
       setList(result.data)
     } catch (error) {
-      console.log(error)
       toast.error("Failed to fetch products")
+    } finally {
+      setLoading(false)
     }
-  }
+  }, [serverUrl])
 
   // Auto-refresh every 10 seconds
   useEffect(() => {
@@ -32,7 +35,7 @@ function Inventory() {
     }, 10000) // Refresh every 10 seconds
 
     return () => clearInterval(interval)
-  }, [serverUrl])
+  }, [fetchList])
 
   const initializeAllInventory = async () => {
     try {
@@ -55,7 +58,6 @@ function Inventory() {
       // Refresh the list to show updates
       await fetchList()
     } catch (error) {
-      console.log(error)
       toast.error("Failed to initialize inventory: " + (error.response?.data?.message || error.message))
     }
   }
@@ -77,7 +79,6 @@ function Inventory() {
       }
     })
     
-    console.log("📝 Edit inventory for", product.name, tempInventory)
     setInventoryData(tempInventory)
   }
 
@@ -103,7 +104,7 @@ function Inventory() {
 
   const handleSave = async (productId) => {
     try {
-      const result = await axios.put(
+      await axios.put(
         `${serverUrl}/api/product/inventory/${productId}`,
         { inventory: inventoryData },
         { withCredentials: true }
@@ -113,7 +114,6 @@ function Inventory() {
       setEditingProduct(null)
       fetchList()
     } catch (error) {
-      console.log(error)
       toast.error("Failed to update inventory")
     }
   }
@@ -164,7 +164,15 @@ function Inventory() {
 
   useEffect(() => {
     fetchList()
-  }, [])
+  }, [fetchList])
+
+  if (loading && list.length === 0) {
+    return (
+      <div className='w-[100vw] min-h-[100vh] bg-gradient-to-l from-[#141414] to-[#0c2025] text-[white] flex items-center justify-center'>
+        <Loading />
+      </div>
+    )
+  }
 
   return (
     <div className='w-[100vw] min-h-[100vh] bg-gradient-to-l from-[#141414] to-[#0c2025] text-[white]'>

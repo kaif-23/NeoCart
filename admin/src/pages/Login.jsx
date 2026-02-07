@@ -21,14 +21,12 @@ function Login() {
             setLoading(true)
             e.preventDefault()
             try {
-              const result = await axios.post(serverUrl + '/api/auth/adminlogin',{email , password} , {withCredentials:true})
-              console.log(result.data)
+              await axios.post(serverUrl + '/api/auth/adminlogin',{email , password} , {withCredentials:true})
               toast.success("AdminLogin Successfully")
               getAdmin()
               navigate("/")
               setLoading(false)
             } catch (error) {
-              console.log(error)
               toast.error("AdminLogin Failed")
               setLoading(false)
             }

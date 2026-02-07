@@ -7,19 +7,24 @@ import { authDataContext } from '../context/AuthContext'
 import axios from 'axios'
 import { useEffect } from 'react'
 import { SiEbox } from "react-icons/si";
+import { toast } from 'react-toastify'
+import Loading from '../component/Loading'
 
 function Orders() {
 
   let [orders,setOrders] = useState([])
+  let [loading, setLoading] = useState(false)
   let {serverUrl} = useContext(authDataContext)
 
     const fetchAllOrders =async () => {
+    setLoading(true)
     try {
       const result = await axios.post(serverUrl + '/api/order/list' , {} ,{withCredentials:true})
       setOrders(result.data.reverse())
-      
     } catch (error) {
-      console.log(error)
+      toast.error("Failed to fetch orders")
+    } finally {
+      setLoading(false)
     }
     
   }
@@ -30,13 +35,21 @@ function Orders() {
             await fetchAllOrders()
           }
          } catch (error) {
-          console.log(error)
-          
+          toast.error("Failed to update order status")
          }
   }
   useEffect(()=>{
     fetchAllOrders()
   },[])
+
+  if (loading && orders.length === 0) {
+    return (
+      <div className='w-[99vw] min-h-[100vh] bg-gradient-to-l from-[#141414] to-[#0c2025] text-[white] flex items-center justify-center'>
+        <Loading />
+      </div>
+    )
+  }
+
   return (
     <div className='w-[99vw] min-h-[100vh] bg-gradient-to-l from-[#141414] to-[#0c2025] text-[white]'>
       

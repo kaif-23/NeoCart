@@ -5,22 +5,25 @@ import { authDataContext } from '../context/AuthContext'
 import axios from 'axios'
 import { toast } from 'react-toastify'
 import { useNavigate } from 'react-router-dom'
+import Loading from '../component/Loading'
 
 function Lists() {
   let [list, setList] = useState([])
   let [searchTerm, setSearchTerm] = useState('')
   let [categoryFilter, setCategoryFilter] = useState('All')
+  let [loading, setLoading] = useState(false)
   let { serverUrl } = useContext(authDataContext)
   let navigate = useNavigate()
 
   const fetchList = async () => {
+    setLoading(true)
     try {
       let result = await axios.get(serverUrl + "/api/product/list")
       setList(result.data)
-      console.log("📦 Products fetched:", result.data.length)
     } catch (error) {
-      console.log(error)
       toast.error("Failed to fetch products")
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -39,7 +42,6 @@ function Lists() {
         toast.error("Failed to remove Product")
       }
     } catch (error) {
-      console.log(error)
       toast.error("Failed to remove Product")
     }
   }
@@ -80,6 +82,14 @@ function Lists() {
   useEffect(() => {
     fetchList()
   }, [])
+
+  if (loading && list.length === 0) {
+    return (
+      <div className='w-[100vw] min-h-[100vh] bg-gradient-to-l from-[#141414] to-[#0c2025] text-[white] flex items-center justify-center'>
+        <Loading />
+      </div>
+    )
+  }
 
   return (
     <div className='w-[100vw] min-h-[100vh] bg-gradient-to-l from-[#141414] to-[#0c2025] text-[white]'>
