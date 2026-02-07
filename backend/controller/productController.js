@@ -180,3 +180,88 @@ export const initializeAllInventory = async (req, res) => {
         return res.status(500).json({ message: `InitializeAllInventory error ${error}` })
     }
 }
+
+// Update existing product
+export const updateProduct = async (req, res) => {
+    try {
+        const { id } = req.params
+        let { name, description, price, category, subCategory, sizes, bestseller } = req.body
+
+        // Find existing product
+        const existingProduct = await Product.findById(id)
+        if (!existingProduct) {
+            return res.status(404).json({ message: "Product not found" })
+        }
+
+        // Handle image uploads - only update if new images provided
+        let image1 = existingProduct.image1
+        let image2 = existingProduct.image2
+        let image3 = existingProduct.image3
+        let image4 = existingProduct.image4
+
+        if (req.files?.image1) {
+            image1 = await uploadOnCloudinary(req.files.image1[0].path)
+        }
+        if (req.files?.image2) {
+            image2 = await uploadOnCloudinary(req.files.image2[0].path)
+        }
+        if (req.files?.image3) {
+            image3 = await uploadOnCloudinary(req.files.image3[0].path)
+        }
+        if (req.files?.image4) {
+            image4 = await uploadOnCloudinary(req.files.image4[0].path)
+        }
+
+        // Parse sizes array
+        const parsedSizes = JSON.parse(sizes)
+
+        // Handle inventory - use provided inventory or create default
+        let inventory = {}
+
+        if (req.body.inventory) {
+            // Use inventory data from frontend
+            inventory = JSON.parse(req.body.inventory)
+        } else {
+            // Fallback: copy existing inventory for sizes that remain
+            for (const size of parsedSizes) {
+                if (existingProduct.inventory && existingProduct.inventory.get(size)) {
+                    // Keep existing inventory data for this size
+                    inventory[size] = existingProduct.inventory.get(size)
+                } else {
+                    // Initialize new size with default values
+                    inventory[size] = {
+                        stock: 100,
+                        available: true
+                    }
+                }
+            }
+        }
+
+        // Update product data
+        const updatedProduct = await Product.findByIdAndUpdate(
+            id,
+            {
+                name,
+                description,
+                price: Number(price),
+                category,
+                subCategory,
+                sizes: parsedSizes,
+                inventory,
+                bestseller: bestseller === "true" ? true : false,
+                image1,
+                image2,
+                image3,
+                image4
+            },
+            { new: true }
+        )
+
+        console.log(`✅ Product updated: ${updatedProduct.name}`)
+        return res.status(200).json(updatedProduct)
+
+    } catch (error) {
+        console.log("UpdateProduct error:", error)
+        return res.status(500).json({ message: `UpdateProduct error ${error}` })
+    }
+}

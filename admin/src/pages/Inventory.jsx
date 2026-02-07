@@ -9,6 +9,9 @@ function Inventory() {
   const [list, setList] = useState([])
   const [editingProduct, setEditingProduct] = useState(null)
   const [inventoryData, setInventoryData] = useState({})
+  const [searchTerm, setSearchTerm] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('All')
+  const [stockFilter, setStockFilter] = useState('All')
   const { serverUrl } = useContext(authDataContext)
 
   const fetchList = async () => {
@@ -120,6 +123,45 @@ function Inventory() {
     setInventoryData({})
   }
 
+  // Get stock status for filtering
+  const getStockStatus = (product) => {
+    if (!product.inventory) return 'unknown'
+    
+    let totalStock = 0
+    let allOutOfStock = true
+    
+    for (const size in product.inventory) {
+      const sizeData = product.inventory[size]
+      if (sizeData.available && sizeData.stock > 0) {
+        totalStock += sizeData.stock
+        allOutOfStock = false
+      }
+    }
+    
+    if (allOutOfStock) return 'out'
+    if (totalStock <= 20) return 'low'
+    return 'in'
+  }
+
+  // Filter products based on search, category, and stock status
+  const filteredList = list.filter(product => {
+    // Search filter
+    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.category.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    // Category filter
+    const matchesCategory = categoryFilter === 'All' || product.category === categoryFilter
+    
+    // Stock filter
+    const stockStatus = getStockStatus(product)
+    const matchesStock = stockFilter === 'All' ||
+      (stockFilter === 'In Stock' && stockStatus === 'in') ||
+      (stockFilter === 'Low Stock' && stockStatus === 'low') ||
+      (stockFilter === 'Out of Stock' && stockStatus === 'out')
+    
+    return matchesSearch && matchesCategory && matchesStock
+  })
+
   useEffect(() => {
     fetchList()
   }, [])
@@ -149,8 +191,44 @@ function Inventory() {
             </div>
           </div>
 
-          {list?.length > 0 ? (
-            list.map((item, index) => (
+          {/* Search and Filter Section */}
+          <div className='w-[90%] flex flex-col gap-[15px] bg-slate-700 p-[20px] rounded-xl'>
+            <div className='flex gap-[15px] flex-wrap'>
+              <input
+                type="text"
+                placeholder="🔍 Search products..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className='flex-1 min-w-[200px] px-4 py-2 bg-slate-600 text-white rounded-lg border-2 border-slate-500 hover:border-[#46d1f7] focus:border-[#46d1f7] focus:outline-none'
+              />
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className='px-4 py-2 bg-slate-600 text-white rounded-lg border-2 border-slate-500 hover:border-[#46d1f7] cursor-pointer'
+              >
+                <option value="All">All Categories</option>
+                <option value="Men">Men</option>
+                <option value="Women">Women</option>
+                <option value="Kids">Kids</option>
+              </select>
+              <select
+                value={stockFilter}
+                onChange={(e) => setStockFilter(e.target.value)}
+                className='px-4 py-2 bg-slate-600 text-white rounded-lg border-2 border-slate-500 hover:border-[#46d1f7] cursor-pointer'
+              >
+                <option value="All">All Stock Status</option>
+                <option value="In Stock">In Stock</option>
+                <option value="Low Stock">Low Stock</option>
+                <option value="Out of Stock">Out of Stock</option>
+              </select>
+            </div>
+            <div className='text-[14px] text-gray-300'>
+              Showing {filteredList.length} of {list.length} products
+            </div>
+          </div>
+
+          {filteredList?.length > 0 ? (
+            filteredList.map((item, index) => (
               <div
                 className='w-[90%] min-h-[120px] bg-slate-600 rounded-xl flex flex-col p-[20px]'
                 key={index}
@@ -265,7 +343,11 @@ function Inventory() {
               </div>
             ))
           ) : (
-            <div className='text-white text-lg'>No products available.</div>
+            <div className='text-white text-lg bg-slate-600 p-8 rounded-xl text-center w-[90%]'>
+              {searchTerm || categoryFilter !== 'All' || stockFilter !== 'All' 
+                ? '🔍 No products found matching your filters.'
+                : '📦 No products available.'}
+            </div>
           )}
         </div>
       </div>
