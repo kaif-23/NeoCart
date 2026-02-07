@@ -1,5 +1,5 @@
 import express from 'express'
-import { addProduct, listProduct, removeProduct } from '../controller/productController.js'
+import { addProduct, listProduct, removeProduct, updateInventory, initializeAllInventory } from '../controller/productController.js'
 import upload from '../middleware/multer.js'
 import adminAuth from "../middleware/adminAuth.js"
 
@@ -14,6 +14,8 @@ productRoutes.post("/addproduct", upload.fields([
 
 productRoutes.get("/list", listProduct)
 productRoutes.post("/remove/:id", adminAuth, removeProduct)
+productRoutes.put("/inventory/:id", adminAuth, updateInventory) // Update inventory for specific product
+productRoutes.post("/initialize-inventory", adminAuth, initializeAllInventory) // Initialize inventory for all products
 
 
 

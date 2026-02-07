@@ -27,7 +27,7 @@ function RelatedProduct({category,subCategory,currentProductId }) {
         <div className='w-[100%]  mt-[30px] flex items-center justify-center flex-wrap gap-[50px]'>
             {
                 related.map((item,index)=>(
-                    <Card key={index} id={item._id} name={item.name } price={item.price} image={item.image1} />
+                    <Card key={index} id={item._id} name={item.name } price={item.price} image={item.image1} inventory={item.inventory} />
                 ))
             }
         </div>

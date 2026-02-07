@@ -41,6 +41,14 @@ const productSchema = new mongoose.Schema({
         type: Array,
         required: true
     },
+    inventory: {
+        type: Map,
+        of: {
+            stock: { type: Number, default: 0 },
+            available: { type: Boolean, default: true }
+        },
+        default: {}
+    },
     date: {
         type: Number,
         required: true

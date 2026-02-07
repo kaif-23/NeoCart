@@ -17,6 +17,10 @@ dotenv.config();
 const port = process.env.PORT || 6000;
 const app = express();
 
+// Trust proxy only when behind reverse proxy (Render, Heroku, Nginx, etc.)
+// Uncomment when deploying to production with load balancer
+// app.set('trust proxy', 1);
+
 // Security Middleware
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }, // Allow images to load
@@ -29,12 +33,21 @@ const limiter = rateLimit({
   message: "Too many requests from this IP, please try again later.",
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => req.path.startsWith('/images'), // Don't rate limit static images
 });
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5, // Limit each IP to 5 login attempts per windowMs
   message: "Too many login attempts, please try again later.",
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const productReadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 200, // Higher limit for read-only operations
+  message: "Too many product requests, please try again later.",
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -60,12 +73,12 @@ app.use(
   })
 );
 
-// Routes
-app.use("/api/auth", authLimiter, authRoutes); // Apply strict rate limiting to auth routes
-app.use("/api/user", userRoutes);
-app.use("/api/product", productRoutes);
-app.use("/api/cart", cartRoutes);
-app.use("/api/order", orderRoutes);
+// Routes with specific rate limiting
+app.use("/api/auth", authLimiter, authRoutes); // Strict: 5 req/15min for auth
+app.use("/api/user", userRoutes); // General: 100 req/15min
+app.use("/api/product", productRoutes); // General: 100 req/15min (consider productReadLimiter for GET routes)
+app.use("/api/cart", cartRoutes); // General: 100 req/15min
+app.use("/api/order", orderRoutes); // General: 100 req/15min
 
 // Start Server
 app.listen(port, () => {

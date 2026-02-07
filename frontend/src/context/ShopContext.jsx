@@ -190,7 +190,7 @@ function ShopContext({children}) {
 
 
     let value = {
-      products, currency , delivery_fee,getProducts,search,setSearch,showSearch,setShowSearch,cartItem, addtoCart, getCartCount, setCartItem ,updateQuantity,getCartAmount,loading,searchProducts,searchResults,searchLoading
+      products, currency , delivery_fee, getProducts, search, setSearch, showSearch, setShowSearch, cartItem, addtoCart, getCartCount, setCartItem, updateQuantity, getCartAmount, loading, searchProducts, searchResults, searchLoading
     }
   return (
     <div>

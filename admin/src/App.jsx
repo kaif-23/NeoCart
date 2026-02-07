@@ -5,6 +5,7 @@ import Add from './pages/Add'
 import Lists from './pages/Lists'
 import Orders from './pages/Orders'
 import Login from './pages/Login'
+import Inventory from './pages/Inventory'
 import { adminDataContext } from './context/AdminContext'
   // eslint-disable-next-line no-unused-vars
   import { ToastContainer, toast } from 'react-toastify';
@@ -22,6 +23,7 @@ function App() {
         <Route path='/add' element={<Add/>}/>
         <Route path='/lists' element={<Lists/>}/>
         <Route path='/orders' element={<Orders/>}/>
+        <Route path='/inventory' element={<Inventory/>}/>
         <Route path='/login' element={<Login/>}/>
       </Routes>
       </>

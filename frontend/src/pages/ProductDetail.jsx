@@ -81,12 +81,58 @@ function ProductDetail() {
                     <p className='text-[25px] font-semibold pl-[5px] text-[white]'>Select Size</p>
           <div className='flex gap-2'>
             {
-              productData.sizes.map((item, index) => (
-                <button key={index} className={`border py-2 px-4 bg-slate-300 rounded-md 
-                  ${item === size ? 'bg-black text-[#2f97f1] text-[20px]' : ''}`} onClick={() => setSize(item)}  >{item}</button>
-              ))
+              productData.sizes.map((item, index) => {
+                // 📊 Show stock info if inventory exists
+                const sizeInventory = productData.inventory?.[item]
+                const stockCount = sizeInventory?.stock || 0
+                const isLowStock = sizeInventory && stockCount > 0 && stockCount < 7
+                const isOutOfStock = sizeInventory && (sizeInventory.available === false || stockCount === 0)
+                
+                return (
+                <div key={index} className='relative'>
+                  <button 
+                    className={`border py-2 px-4 bg-slate-300 rounded-md relative
+                      ${item === size ? 'bg-black text-[#2f97f1] text-[20px]' : ''}
+                      ${isOutOfStock ? 'opacity-50' : ''}
+                    `} 
+                    onClick={() => setSize(item)}
+                  >
+                    {item}
+                    
+                    {/* 📊 Stock badge - only show when < 7 */}
+                    {isLowStock && !isOutOfStock && (
+                      <span className='absolute -top-2 -right-2 bg-orange-500 text-white text-[10px] px-1 rounded'>
+                        {stockCount}
+                      </span>
+                    )}
+                    {isOutOfStock && (
+                      <span className='absolute -top-2 -right-2 bg-red-600 text-white text-[10px] px-1 rounded'>
+                        Out
+                      </span>
+                    )}
+                  </button>
+                </div>
+              )})
             }
           </div>
+          
+          {/* Show stock info for selected size - only when < 7 */}
+          {size && productData.inventory?.[size] && (
+            <div className='text-[14px] pl-[5px] mt-1'>
+              {productData.inventory[size].available && productData.inventory[size].stock > 0 ? (
+                productData.inventory[size].stock < 7 ? (
+                  <p className='text-orange-400'>
+                    ⚠️ Only {productData.inventory[size].stock} left in stock
+                  </p>
+                ) : null
+              ) : (
+                <p className='text-red-400'>
+                  ⚠️ Currently out of stock
+                </p>
+              )}
+            </div>
+          )}
+          
            <button className='text-[16px] active:bg-slate-500 cursor-pointer bg-[#495b61c9] py-[10px] px-[20px] rounded-2xl mt-[10px] border-[1px] border-[#80808049] text-white shadow-md shadow-black' onClick={()=>addtoCart(productData._id , size)} >{loading? <Loading/> : "Add to Cart"}</button>
                 </div>
             <div className='w-[90%] h-[1px] bg-slate-700'></div>
