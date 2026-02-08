@@ -2,19 +2,45 @@ import Order from "../models/orderModel.js";
 import User from "../models/userModel.js";
 import Product from "../models/productModel.js";
 import razorpay from 'razorpay'
+import crypto from 'crypto'
 import dotenv from 'dotenv'
 dotenv.config()
 const currency = 'inr'
+const DELIVERY_FEE = 40 // Must match frontend delivery_fee
 const razorpayInstance = new razorpay({
     key_id: process.env.RAZORPAY_KEY_ID,
     key_secret: process.env.RAZORPAY_KEY_SECRET
 })
 
+// Helper: calculate order amount server-side from validated product prices
+const calculateOrderAmount = async (items) => {
+    let total = 0;
+    for (const item of items) {
+        const product = await Product.findById(item.productId || item._id);
+        if (!product) {
+            throw new Error(`Product ${item.name || 'unknown'} not found`);
+        }
+        if (!item.quantity || item.quantity <= 0 || !Number.isInteger(item.quantity)) {
+            throw new Error(`Invalid quantity for ${product.name}`);
+        }
+        total += product.price * item.quantity;
+    }
+    return total + DELIVERY_FEE;
+}
+
 // for User
 export const placeOrder = async (req, res) => {
     try {
-        const { items, amount, address } = req.body;
+        const { items, address } = req.body;
         const userId = req.userId;
+
+        // Recalculate amount server-side - never trust client amount
+        let amount;
+        try {
+            amount = await calculateOrderAmount(items);
+        } catch (err) {
+            return res.status(400).json({ message: err.message });
+        }
 
         for (const item of items) {
             const product = await Product.findById(item.productId || item._id)
@@ -87,8 +113,16 @@ export const placeOrder = async (req, res) => {
 
 export const placeOrderRazorpay = async (req, res) => {
     try {
-        const { items, amount, address } = req.body;
+        const { items, address } = req.body;
         const userId = req.userId;
+
+        // Recalculate amount server-side - never trust client amount
+        let amount;
+        try {
+            amount = await calculateOrderAmount(items);
+        } catch (err) {
+            return res.status(400).json({ message: err.message });
+        }
 
         for (const item of items) {
             const product = await Product.findById(item.productId || item._id)
@@ -153,7 +187,22 @@ export const placeOrderRazorpay = async (req, res) => {
 export const verifyRazorpay = async (req, res) => {
     try {
         const userId = req.userId
-        const { razorpay_order_id } = req.body
+        const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body
+
+        // Verify Razorpay signature using HMAC-SHA256
+        if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+            return res.status(400).json({ message: 'Missing payment verification data' })
+        }
+
+        const generatedSignature = crypto
+            .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+            .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+            .digest('hex');
+
+        if (generatedSignature !== razorpay_signature) {
+            return res.status(400).json({ message: 'Payment verification failed. Invalid signature.' })
+        }
+
         const orderInfo = await razorpayInstance.orders.fetch(razorpay_order_id)
         if (orderInfo.status === 'paid') {
             const order = await Order.findById(orderInfo.receipt)

@@ -48,10 +48,10 @@ function Registration() {
         try {
             const response = await signInWithPopup(auth , provider)
             let user = response.user
-            let name = user.displayName;
-            let email = user.email
+            // Get Firebase ID token for server-side verification
+            const idToken = await user.getIdToken();
 
-            const result = await axios.post(serverUrl + "/api/auth/googlelogin" ,{name , email} , {withCredentials:true})
+            const result = await axios.post(serverUrl + "/api/auth/googlelogin" ,{ idToken } , {withCredentials:true})
             console.log(result.data)
             getCurrentUser()
             navigate("/")

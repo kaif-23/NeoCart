@@ -4,6 +4,21 @@ import bcrypt from "bcryptjs"
 import { genToken, genToken1 } from "../utils/token.js";
 import crypto from "crypto";
 import { sendPasswordResetEmail } from "../config/emailService.js";
+import admin from "firebase-admin";
+
+// Lazy-initialize Firebase Admin SDK (env vars aren't loaded at import time)
+const getFirebaseAdmin = () => {
+    if (!admin.apps.length) {
+        admin.initializeApp({
+            credential: admin.credential.cert({
+                projectId: process.env.FIREBASE_PROJECT_ID || "login-neocart",
+                clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+                privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+            }),
+        });
+    }
+    return admin;
+};
 
 
 export const registration = async (req, res) => {
@@ -80,7 +95,28 @@ export const logOut = async (req, res) => {
 
 export const googleLogin = async (req, res) => {
     try {
-        let { name, email } = req.body;
+        const { idToken } = req.body;
+
+        if (!idToken) {
+            return res.status(400).json({ message: "Firebase ID token is required" })
+        }
+
+        // Verify the Firebase ID token server-side
+        let decodedToken;
+        try {
+            const firebaseAdmin = getFirebaseAdmin();
+            decodedToken = await firebaseAdmin.auth().verifyIdToken(idToken);
+        } catch (err) {
+            return res.status(401).json({ message: "Invalid or expired Google token" })
+        }
+
+        const email = decodedToken.email;
+        const name = decodedToken.name || decodedToken.email;
+
+        if (!email) {
+            return res.status(400).json({ message: "Email not found in Google token" })
+        }
+
         let user = await User.findOne({ email })
         if (!user) {
             user = await User.create({
@@ -99,7 +135,7 @@ export const googleLogin = async (req, res) => {
 
     } catch (error) {
         console.log("googleLogin error")
-        return res.status(500).json({ message: `googleLogin error ${error}` })
+        return res.status(500).json({ message: "Google login failed. Please try again." })
     }
 }
 
