@@ -20,7 +20,7 @@ function LatestCollection() {
       <div className='w-[100%] h-[50%] mt-[30px] flex items-center justify-center flex-wrap gap-[50px]'>
         {
             latestProducts.map((item,index)=>(
-                <Card key={index} name={item.name} image={item.image1} id={item._id} price={item.price}/>
+                <Card key={index} name={item.name} image={item.image1} id={item._id} price={item.price} inventory={item.inventory} averageRating={item.averageRating} totalReviews={item.totalReviews}/>
             ))
         }
         

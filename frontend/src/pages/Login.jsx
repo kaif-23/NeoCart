@@ -38,8 +38,9 @@ function Login() {
             toast.success("User Login Successful")
             
         } catch (error) {
+            setLoading(false)
             console.log(error)
-            toast.error("User Login Failed")
+            toast.error(error.response?.data?.message || "User Login Failed")
         }
     }
      const googlelogin = async () => {
@@ -85,7 +86,10 @@ function Login() {
                   <input type={show?"text":"password"} className='w-[100%] h-[50px] border-[2px] border-[#96969635] backdrop:blur-sm rounded-lg shadow-lg bg-transparent placeholder-[#ffffffc7] px-[20px] font-semibold' placeholder='Password' required onChange={(e)=>setPassword(e.target.value)} value={password}/>
                   {!show && <IoEyeOutline className='w-[20px] h-[20px] cursor-pointer absolute right-[5%] bottom-[57%]' onClick={()=>setShow(prev => !prev)}/>}
                   {show && <IoEye className='w-[20px] h-[20px] cursor-pointer absolute right-[5%] bottom-[57%]' onClick={()=>setShow(prev => !prev)}/>}
-                  <button className='w-[100%] h-[50px] bg-[#6060f5] rounded-lg flex items-center justify-center mt-[20px] text-[17px] font-semibold'>{loading? <Loading/> : "Login"}</button>
+                  <div className='w-[100%] flex justify-end'>
+                    <span className='text-[#5555f6cf] text-[14px] cursor-pointer hover:underline' onClick={()=>navigate("/forgot-password")}>Forgot Password?</span>
+                  </div>
+                  <button className='w-[100%] h-[50px] bg-[#6060f5] rounded-lg flex items-center justify-center mt-[10px] text-[17px] font-semibold'>{loading? <Loading/> : "Login"}</button>
                   <p className='flex  gap-[10px]'>You haven't any account? <span className='text-[#5555f6cf] text-[17px] font-semibold cursor-pointer' onClick={()=>navigate("/signup")}>Create New Account</span></p>
             </div>
         </form>

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { authDataContext } from './AuthContext'
 import axios from 'axios'
 import { userDataContext } from './UserContext'
@@ -13,7 +13,9 @@ function ShopContext({children}) {
     let [showSearch,setShowSearch] = useState(false)
     let {serverUrl} = useContext(authDataContext)
     let [cartItem, setCartItem] = useState({});
-      let [loading,setLoading] = useState(false)
+    let [loading,setLoading] = useState(false)
+    let [searchResults, setSearchResults] = useState([])
+    let [searchLoading, setSearchLoading] = useState(false)
     let currency = '₹';
     let delivery_fee = 40;
 
@@ -134,6 +136,31 @@ function ShopContext({children}) {
       return totalAmount
     }
 
+    const searchProducts = useCallback((query) => {
+      // Validate query - must have at least 2 non-space characters
+      const trimmedQuery = query.trim()
+      if (!trimmedQuery || trimmedQuery.length < 2) {
+        setSearchResults([])
+        setSearchLoading(false)
+        return
+      }
+
+      setSearchLoading(true)
+      
+      // Debounced search with proper delay
+      const filtered = products.filter(product =>
+        product.name.toLowerCase().includes(trimmedQuery.toLowerCase()) ||
+        product.category.toLowerCase().includes(trimmedQuery.toLowerCase()) ||
+        product.subCategory.toLowerCase().includes(trimmedQuery.toLowerCase())
+      )
+      
+      // Small delay to show loading state
+      setTimeout(() => {
+        setSearchResults(filtered.slice(0, 8)) // Limit to 8 results
+        setSearchLoading(false)
+      }, 150)
+    }, [products])
+
     useEffect(() => {
       const fetchProducts = async () => {
         try {
@@ -163,7 +190,7 @@ function ShopContext({children}) {
 
 
     let value = {
-      products, currency , delivery_fee,getProducts,search,setSearch,showSearch,setShowSearch,cartItem, addtoCart, getCartCount, setCartItem ,updateQuantity,getCartAmount,loading
+      products, currency , delivery_fee, getProducts, search, setSearch, showSearch, setShowSearch, cartItem, addtoCart, getCartCount, setCartItem, updateQuantity, getCartAmount, loading, searchProducts, searchResults, searchLoading
     }
   return (
     <div>

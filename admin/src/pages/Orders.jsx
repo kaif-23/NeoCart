@@ -7,19 +7,24 @@ import { authDataContext } from '../context/AuthContext'
 import axios from 'axios'
 import { useEffect } from 'react'
 import { SiEbox } from "react-icons/si";
+import { toast } from 'react-toastify'
+import Loading from '../component/Loading'
 
 function Orders() {
 
   let [orders,setOrders] = useState([])
+  let [loading, setLoading] = useState(false)
   let {serverUrl} = useContext(authDataContext)
 
     const fetchAllOrders =async () => {
+    setLoading(true)
     try {
       const result = await axios.post(serverUrl + '/api/order/list' , {} ,{withCredentials:true})
       setOrders(result.data.reverse())
-      
     } catch (error) {
-      console.log(error)
+      toast.error("Failed to fetch orders")
+    } finally {
+      setLoading(false)
     }
     
   }
@@ -30,13 +35,21 @@ function Orders() {
             await fetchAllOrders()
           }
          } catch (error) {
-          console.log(error)
-          
+          toast.error("Failed to update order status")
          }
   }
   useEffect(()=>{
     fetchAllOrders()
   },[])
+
+  if (loading && orders.length === 0) {
+    return (
+      <div className='w-[99vw] min-h-[100vh] bg-gradient-to-l from-[#141414] to-[#0c2025] text-[white] flex items-center justify-center'>
+        <Loading />
+      </div>
+    )
+  }
+
   return (
     <div className='w-[99vw] min-h-[100vh] bg-gradient-to-l from-[#141414] to-[#0c2025] text-[white]'>
       
@@ -50,26 +63,35 @@ function Orders() {
             <div key={index} className='w-[90%] h-[40%] bg-slate-600 rounded-xl flex lg:items-center items-start justify-between  flex-col lg:flex-row p-[10px] md:px-[20px]  gap-[20px]'>
             <SiEbox  className='w-[60px] h-[60px] text-[black] p-[5px] rounded-lg bg-[white]'/>
 
-            <div>
-              <div className='flex items-start justify-center flex-col gap-[5px] text-[16px] text-[#56dbfc]'>
+            <div className='flex-1'>
+              {/* Product Images and Details */}
+              <div className='flex items-start flex-wrap gap-[10px] mb-[15px]'>
                 {
-                  order.items.map((item,index)=>{
-                    if(index === order.items.length - 1){
-                       return <p key={index}>{item.name.toUpperCase()}  *  {item.quantity} <span>{item.size}</span></p>
-
-                    }else{
-                       return <p key={index}>{item.name.toUpperCase()}  *  {item.quantity} <span>{item.size}</span>,</p>
-
-                    }
-                  })
+                  order.items.map((item, index) => (
+                    <div key={index} className='flex items-center gap-[8px] bg-slate-700 p-[8px] rounded-lg'>
+                      {item.image1 && (
+                        <img 
+                          src={item.image1} 
+                          alt={item.name}
+                          className='w-[50px] h-[50px] rounded-lg object-cover border-2 border-slate-400'
+                        />
+                      )}
+                      <div className='flex flex-col text-[14px]'>
+                        <span className='text-[#56dbfc] font-semibold'>{item.name}</span>
+                        <span className='text-[#bef3da]'>Qty: {item.quantity} | Size: {item.size}</span>
+                      </div>
+                    </div>
+                  ))
                 }
               </div>
 
+              {/* Delivery Address */}
               <div className='text-[15px] text-green-100'>
+                  <p className='font-semibold text-white mb-[5px]'>📍 Delivery Address:</p>
                   <p>{order.address.firstName+" "+ order.address.lastName}</p>
                   <p>{order.address.street + ", "}</p>
                   <p>{order.address.city + ", " + order.address.state + ", " + order.address.country + ", " + order.address.pinCode}</p>
-                  <p>{order.address.phone}</p>
+                  <p>📞 {order.address.phone}</p>
                 </div>
             </div>
             <div className='text-[15px] text-green-100'>

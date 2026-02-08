@@ -3,16 +3,26 @@ import mongoose from "mongoose";
 
 const orderSchema = new mongoose.Schema({
     userId: {
-        type: String,
-        required: true
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true,
+        index: true
     },
-    items: {
-        type: Array,
-        required: true
-    },
+    items: [{
+        productId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Product'
+        },
+        name: String,
+        size: String,
+        quantity: Number,
+        price: Number,
+        image: String
+    }],
     amount: {
         type: Number,
-        required: true
+        required: true,
+        min: 0
     },
     address: {
         type: Object,
@@ -21,11 +31,13 @@ const orderSchema = new mongoose.Schema({
     status: {
         type: String,
         required: true,
-        default: 'Order Placed'
+        default: 'Order Placed',
+        enum: ['Order Placed', 'Packing', 'Shipped', 'Out for delivery', 'Delivered', 'Cancelled']
     },
     paymentMethod: {
         type: String,
-        required: true
+        required: true,
+        enum: ['COD', 'Razorpay']
     },
     payment: {
         type: Boolean,
@@ -37,6 +49,10 @@ const orderSchema = new mongoose.Schema({
         required: true
     }
 }, { timestamps: true })
+
+// Add indexes for common queries
+orderSchema.index({ userId: 1, createdAt: -1 })
+orderSchema.index({ status: 1 })
 
 const Order = mongoose.model('Order', orderSchema)
 

@@ -126,7 +126,7 @@ function Collections() {
         <div className='lg:w-[80vw] md:w-[60vw]   w-[100vw] min-h-[70vh] flex items-center justify-center flex-wrap gap-[30px]'>
             {
              filterProduct.map((item,index)=>(
-                <Card key={index} id={item._id} name={item.name} price={item.price} image={item.image1}/>
+                <Card key={index} id={item._id} name={item.name} price={item.price} image={item.image1} inventory={item.inventory} averageRating={item.averageRating} totalReviews={item.totalReviews}/>
              ))
             }
         </div>

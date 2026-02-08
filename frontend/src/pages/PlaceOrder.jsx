@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react'
+import React, { useContext, useState, useEffect } from 'react'
 import Title from '../component/Title'
 import CartTotal from '../component/CartTotal'
 import razorpay from '../assets/Razorpay.jpg'
@@ -12,9 +12,16 @@ import Loading from '../component/Loading'
 function PlaceOrder() {
     let [method,setMethod] = useState('cod')
     let navigate = useNavigate()
-    const {cartItem , setCartItem , getCartAmount , delivery_fee , products } = useContext(shopDataContext)
+    const {cartItem , setCartItem , getCartAmount , delivery_fee , products , getProducts } = useContext(shopDataContext)
     let {serverUrl} = useContext(authDataContext)
     let [loading ,setLoading] = useState(false)
+    let [stockIssues, setStockIssues] = useState([])
+    let [showStockWarning, setShowStockWarning] = useState(false)
+    
+    // Saved addresses
+    let [savedAddresses, setSavedAddresses] = useState([])
+    let [selectedAddressId, setSelectedAddressId] = useState(null)
+    let [showAddressSelect, setShowAddressSelect] = useState(false)
 
     let [formData,setFormData] = useState({
         firstName:'',
@@ -28,11 +35,125 @@ function PlaceOrder() {
         phone:''
     })
 
+    // Fetch saved addresses on mount
+    useEffect(() => {
+        fetchSavedAddresses()
+    }, [])
+
+    const fetchSavedAddresses = async () => {
+        try {
+            const response = await axios.get(`${serverUrl}/api/profile/addresses`, {
+                withCredentials: true
+            })
+            
+            if (response.data.success) {
+                setSavedAddresses(response.data.addresses)
+                
+                // Auto-fill default address if exists
+                const defaultAddress = response.data.addresses.find(addr => addr.isDefault)
+                if (defaultAddress) {
+                    fillFormWithAddress(defaultAddress)
+                    setSelectedAddressId(defaultAddress._id)
+                }
+            }
+        } catch (error) {
+            console.log('Failed to fetch addresses:', error)
+        }
+    }
+
+    const fillFormWithAddress = (address) => {
+        setFormData({
+            firstName: address.firstName,
+            lastName: address.lastName,
+            email: formData.email, // Keep existing email
+            street: address.addressLine1 + (address.addressLine2 ? ', ' + address.addressLine2 : ''),
+            city: address.city,
+            state: address.state,
+            pinCode: address.zipCode,
+            country: address.country,
+            phone: address.phone
+        })
+    }
+
+    const handleAddressSelect = (address) => {
+        fillFormWithAddress(address)
+        setSelectedAddressId(address._id)
+        setShowAddressSelect(false)
+    }
+
     const onChangeHandler = (e)=>{
         const name = e.target.name;
         const value = e.target.value;
         setFormData(data => ({...data,[name]:value}))
     }
+
+    // 🔍 Validate stock availability at checkout
+    const validateStock = () => {
+        const issues = []
+        
+        for(const itemId in cartItem){
+            for(const size in cartItem[itemId]){
+                if(cartItem[itemId][size] > 0){
+                    const product = products.find(p => p._id === itemId)
+                    
+                    if(!product){
+                        issues.push({
+                            productId: itemId,
+                            productName: 'Unknown Product',
+                            size: size,
+                            requestedQty: cartItem[itemId][size],
+                            availableStock: 0,
+                            issue: 'Product not found'
+                        })
+                        continue
+                    }
+                    
+                    // Check if product has inventory system
+                    if(!product.inventory || !product.inventory[size]){
+                        // Old products without inventory - assume available
+                        continue
+                    }
+                    
+                    const sizeInventory = product.inventory[size]
+                    const requestedQty = cartItem[itemId][size]
+                    
+                    // Check if size is available
+                    if(!sizeInventory.available || sizeInventory.stock === 0){
+                        issues.push({
+                            productId: itemId,
+                            productName: product.name,
+                            size: size,
+                            requestedQty: requestedQty,
+                            availableStock: 0,
+                            issue: 'Out of stock'
+                        })
+                    }
+                    // Check if requested quantity exceeds available stock
+                    else if(requestedQty > sizeInventory.stock){
+                        issues.push({
+                            productId: itemId,
+                            productName: product.name,
+                            size: size,
+                            requestedQty: requestedQty,
+                            availableStock: sizeInventory.stock,
+                            issue: 'Insufficient stock'
+                        })
+                    }
+                }
+            }
+        }
+        
+        return issues
+    }
+
+    // Check stock when component loads
+    useEffect(() => {
+        const issues = validateStock()
+        setStockIssues(issues)
+        if(issues.length > 0){
+            setShowStockWarning(true)
+        }
+    }, [cartItem, products])
 
     const initPay = (order) => {
         const options = {
@@ -50,6 +171,7 @@ function PlaceOrder() {
                     if (data) {
                         navigate("/order")
                         setCartItem({})
+                        await getProducts() // Refresh products to show updated stock
                         toast.success("Payment Successful")
                     }
                 } catch (error) {
@@ -72,8 +194,21 @@ function PlaceOrder() {
     }
 
     const onSubmitHandler = async (e) => {
-        setLoading(true)
         e.preventDefault()
+        
+        // 🔍 VALIDATION: Check stock before proceeding
+        const issues = validateStock()
+        
+        if(issues.length > 0){
+            setStockIssues(issues)
+            setShowStockWarning(true)
+            toast.error('Please resolve stock issues before checkout')
+            // Scroll to top to show warnings
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+            return
+        }
+        
+        setLoading(true)
         try {
             let orderItems = []
             for(const items in cartItem){
@@ -100,6 +235,7 @@ function PlaceOrder() {
                     console.log(result.data)
                     if(result.data){
                         setCartItem({})
+                        await getProducts() // Refresh products to show updated stock
                         toast.success("Order Placed")
                         navigate("/order")
                         setLoading(false)
@@ -130,18 +266,102 @@ function PlaceOrder() {
 
         } catch (error) {
             console.log(error)
-            toast.error("Something went wrong")
             setLoading(false)
+            
+            // Handle stock error from backend
+            if(error.response?.data?.stockError){
+                toast.error(error.response.data.message)
+                // Refresh stock validation
+                const issues = validateStock()
+                setStockIssues(issues)
+                setShowStockWarning(true)
+            } else {
+                toast.error(error.response?.data?.message || "Something went wrong")
+            }
         }
     }
 
     return (
         <div className='w-[100vw] min-h-[100vh] bg-gradient-to-l from-[#141414] to-[#0c2025] flex items-center justify-center flex-col md:flex-row gap-[50px]  relative'>
+            
+            {/* 🚨 Stock Warning Section */}
+            {showStockWarning && stockIssues.length > 0 && (
+                <div className='fixed top-[80px] left-[50%] transform -translate-x-1/2 w-[90%] max-w-[600px] bg-red-600 text-white p-4 rounded-lg shadow-2xl z-50 border-2 border-red-400'>
+                    <div className='flex justify-between items-start mb-2'>
+                        <h3 className='text-[20px] font-bold'>⚠️ Stock Issues Found</h3>
+                        <button 
+                            onClick={() => setShowStockWarning(false)}
+                            className='text-white text-[24px] font-bold hover:text-red-200'
+                        >
+                            ×
+                        </button>
+                    </div>
+                    <p className='text-[14px] mb-3'>Please resolve these issues before checkout:</p>
+                    <div className='max-h-[200px] overflow-y-auto'>
+                        {stockIssues.map((issue, index) => (
+                            <div key={index} className='bg-red-700 p-2 mb-2 rounded text-[13px]'>
+                                <p className='font-semibold'>{issue.productName} (Size: {issue.size})</p>
+                                <p>• You want: {issue.requestedQty} items</p>
+                                <p>• Available: {issue.availableStock} items</p>
+                                <p className='text-yellow-300'>→ {issue.issue}</p>
+                            </div>
+                        ))}
+                    </div>
+                    <button 
+                        onClick={() => navigate('/cart')}
+                        className='mt-3 w-full bg-white text-red-600 py-2 rounded font-bold hover:bg-red-100'
+                    >
+                        Go to Cart & Fix Issues
+                    </button>
+                </div>
+            )}
+            
             <div className='lg:w-[50%] w-[100%] h-[100%] flex items-center justify-center  lg:mt-[0px] mt-[90px] '>
                 <form action="" onSubmit={onSubmitHandler} className='lg:w-[70%] w-[95%] lg:h-[70%] h-[100%]'>
-                    <div className='py-[10px]'>
+                    <div className='py-[10px] flex items-center justify-between'>
                         <Title text1={'DELIVERY'} text2={'INFORMATION'}/>
+                        {savedAddresses.length > 0 && (
+                            <button
+                                type="button"
+                                onClick={() => setShowAddressSelect(!showAddressSelect)}
+                                className='text-sm bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors'
+                            >
+                                {showAddressSelect ? 'Hide' : 'Saved Addresses'}
+                            </button>
+                        )}
                     </div>
+
+                    {/* Saved Addresses Dropdown */}
+                    {showAddressSelect && savedAddresses.length > 0 && (
+                        <div className='w-full bg-slate-800 rounded-lg p-4 mb-4 max-h-[300px] overflow-y-auto'>
+                            <h3 className='text-white text-lg font-semibold mb-3'>Select Address</h3>
+                            <div className='space-y-2'>
+                                {savedAddresses.map((address) => (
+                                    <div
+                                        key={address._id}
+                                        onClick={() => handleAddressSelect(address)}
+                                        className={`p-3 rounded-lg cursor-pointer transition-all ${
+                                            selectedAddressId === address._id
+                                                ? 'bg-blue-600 text-white'
+                                                : 'bg-slate-700 text-white hover:bg-slate-600'
+                                        }`}
+                                    >
+                                        <div className='flex items-center justify-between mb-1'>
+                                            <span className='font-semibold'>{address.label}</span>
+                                            {address.isDefault && (
+                                                <span className='text-xs bg-green-500 px-2 py-1 rounded'>Default</span>
+                                            )}
+                                        </div>
+                                        <p className='text-sm'>{address.firstName} {address.lastName}</p>
+                                        <p className='text-sm'>{address.addressLine1}</p>
+                                        <p className='text-sm'>{address.city}, {address.state} {address.zipCode}</p>
+                                        <p className='text-sm'>{address.phone}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     <div className='w-[100%] h-[70px] flex items-center justify-between px-[10px]'>
                         <input type="text" placeholder='First name' className='w-[48%] h-[50px] rounded-md bg-slate-700 placeholder:text-[white] text-[18px] px-[20px] shadow-sm shadow-[#343434]'required  onChange={onChangeHandler} name='firstName' value={formData.firstName}/>
                         <input type="text" placeholder='Last name' className='w-[48%] h-[50px] rounded-md shadow-sm shadow-[#343434] bg-slate-700 placeholder:text-[white] text-[18px] px-[20px]' required onChange={onChangeHandler} name='lastName' value={formData.lastName} />

@@ -1,12 +1,12 @@
 import jwt from 'jsonwebtoken'
 import User from '../model/userModel.js'
 
-const adminAuth = async (req, res, next) => {
+const superadminAuth = async (req, res, next) => {
     try {
         let { token } = req.cookies
 
         if (!token) {
-            return res.status(401).json({ message: "Not authorized. Please login as admin." })
+            return res.status(401).json({ message: "Not authorized. Please login as superadmin." })
         }
 
         // Verify token
@@ -30,9 +30,9 @@ const adminAuth = async (req, res, next) => {
             return res.status(401).json({ message: "User not found or inactive." })
         }
 
-        // Check if user has admin or superadmin role
-        if (user.role !== 'admin' && user.role !== 'superadmin') {
-            return res.status(403).json({ message: "Access denied. Admin privileges required." })
+        // Check if user has SUPERADMIN role ONLY
+        if (user.role !== 'superadmin') {
+            return res.status(403).json({ message: "Access denied. Superadmin privileges required." })
         }
 
         // Attach user info to request
@@ -47,4 +47,4 @@ const adminAuth = async (req, res, next) => {
     }
 }
 
-export default adminAuth
+export default superadminAuth
