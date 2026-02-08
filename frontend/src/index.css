@@ -1,1 +1,107 @@
 @import "tailwindcss";
+
+@layer base {
+    :root {
+        --background: 195 41% 10%;
+        --foreground: 210 40% 98%;
+        --card: 195 41% 10%;
+        --card-foreground: 210 40% 98%;
+        --popover: 195 41% 10%;
+        --popover-foreground: 210 40% 98%;
+        --primary: 199.99 89.4% 48.42%;
+        --primary-foreground: 210 40% 98%;
+        --secondary: 217.2 32.6% 17.5%;
+        --secondary-foreground: 210 40% 98%;
+        --muted: 217.2 32.6% 17.5%;
+        --muted-foreground: 215 20.2% 65.1%;
+        --accent: 217.2 32.6% 17.5%;
+        --accent-foreground: 210 40% 98%;
+        --destructive: 0 62.8% 30.6%;
+        --destructive-foreground: 210 40% 98%;
+        --border: 0 0% 20%;
+        --input: 0 0% 20%;
+        --ring: 199.99 89.4% 48.42%;
+        --radius: 0.5rem;
+        --chart-1: 220 70% 50%;
+        --chart-2: 160 60% 45%;
+        --chart-3: 30 80% 55%;
+        --chart-4: 280 65% 60%;
+        --chart-5: 340 75% 55%;
+    }
+
+    .dark {
+        --background: 195 41% 10%;
+        --foreground: 210 40% 98%;
+        --card: 195 41% 10%;
+        --card-foreground: 210 40% 98%;
+        --popover: 195 41% 10%;
+        --popover-foreground: 210 40% 98%;
+        --primary: 199.99 89.4% 48.42%;
+        --primary-foreground: 222.2 47.4% 11.2%;
+        --secondary: 217.2 32.6% 17.5%;
+        --secondary-foreground: 210 40% 98%;
+        --muted: 217.2 32.6% 17.5%;
+        --muted-foreground: 215 20.2% 65.1%;
+        --accent: 217.2 32.6% 17.5%;
+        --accent-foreground: 210 40% 98%;
+        --destructive: 0 62.8% 30.6%;
+        --destructive-foreground: 210 40% 98%;
+        --border: 0 0% 20%;
+        --input: 0 0% 20%;
+        --ring: 199.99 89.4% 48.42%;
+        --chart-1: 220 70% 50%;
+        --chart-2: 160 60% 45%;
+        --chart-3: 30 80% 55%;
+        --chart-4: 280 65% 60%;
+        --chart-5: 340 75% 55%;
+    }
+}
+
+@layer base {
+    * {
+        border-color: hsl(var(--border));
+    }
+
+    html {
+        scroll-behavior: smooth;
+    }
+
+    body {
+        background-color: #0c2025;
+        color: hsl(var(--foreground));
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #ffffff20;
+        border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #ffffff40;
+    }
+
+    /* Selection color */
+    ::selection {
+        background: #0ea5e950;
+        color: white;
+    }
+}
+
+/* Hide scrollbar for carousel tracks */
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}

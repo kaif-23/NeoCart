@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react'
-import Backgound from '../component/Backgound'
-import Hero from '../component/Hero'
+import Background from '@/components/home/Background'
+import Hero from '@/components/home/Hero'
 import Product from './Product'
-import OurPolicy from '../component/OurPolicy'
-import NewLetterBox from '../component/NewLetterBox'
-import Footer from '../component/Footer'
+import OurPolicy from '@/components/home/OurPolicy'
+import NewsletterBox from '@/components/home/NewsletterBox'
+import Footer from '@/components/layout/Footer'
 
 
 function Home() {
@@ -26,9 +26,9 @@ function Home() {
   
   return (
     <div className='overflow-x-hidden relative top-[70px]'>
-    <div className=' w-[100vw] lg:h-[100vh] md:h-[50vh] sm:h-[30vh]   bg-gradient-to-l from-[#141414] to-[#0c2025] '>
+    <div className='w-full h-[50vh] sm:h-[55vh] md:h-[70vh] lg:h-[100vh] relative bg-gradient-to-l from-[#141414] to-[#0c2025]'>
 
-      <Backgound heroCount={heroCount}/>
+      <Background heroCount={heroCount}/>
       <Hero
       heroCount={heroCount}
       setHeroCount={setHeroCount}
@@ -40,7 +40,7 @@ function Home() {
     </div>
     <Product/>
     <OurPolicy/>
-    <NewLetterBox/>
+    <NewsletterBox/>
     <Footer/>
     </div>
   )

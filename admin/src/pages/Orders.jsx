@@ -1,119 +1,179 @@
-import React from 'react'
-import Nav from '../component/Nav'
-import Sidebar from '../component/Sidebar'
-import { useState } from 'react'
-import { useContext } from 'react'
-import { authDataContext } from '../context/AuthContext'
+import React, { useState, useContext, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { authDataContext } from '../contexts/AuthContext'
 import axios from 'axios'
-import { useEffect } from 'react'
-import { SiEbox } from "react-icons/si";
 import { toast } from 'react-toastify'
-import Loading from '../component/Loading'
+import Loading from '../components/common/Loading'
+import { HiOutlineShoppingCart, HiOutlineRefresh, HiOutlineChevronRight } from 'react-icons/hi'
+import { HiOutlineMapPin, HiOutlinePhone, HiOutlineClock } from 'react-icons/hi2'
+
+const formatIST = (date) => {
+  return new Date(date).toLocaleString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  })
+}
 
 function Orders() {
-
-  let [orders,setOrders] = useState([])
+  let [orders, setOrders] = useState([])
   let [loading, setLoading] = useState(false)
-  let {serverUrl} = useContext(authDataContext)
+  let { serverUrl } = useContext(authDataContext)
+  const navigate = useNavigate()
 
-    const fetchAllOrders =async () => {
+  const fetchAllOrders = async () => {
     setLoading(true)
     try {
-      const result = await axios.post(serverUrl + '/api/order/list' , {} ,{withCredentials:true})
+      const result = await axios.post(serverUrl + '/api/order/list', {}, { withCredentials: true })
       setOrders(result.data.reverse())
     } catch (error) {
       toast.error("Failed to fetch orders")
     } finally {
       setLoading(false)
     }
-    
   }
-   const statusHandler = async (e , orderId) => {
-         try {
-          const result = await axios.post(serverUrl + '/api/order/status' , {orderId,status:e.target.value},{withCredentials:true})
-          if(result.data){
-            await fetchAllOrders()
-          }
-         } catch (error) {
-          toast.error("Failed to update order status")
-         }
+
+  const statusHandler = async (e, orderId) => {
+    try {
+      const result = await axios.post(serverUrl + '/api/order/status', { orderId, status: e.target.value }, { withCredentials: true })
+      if (result.data) {
+        await fetchAllOrders()
+      }
+    } catch (error) {
+      toast.error("Failed to update order status")
+    }
   }
-  useEffect(()=>{
-    fetchAllOrders()
-  },[])
+
+  useEffect(() => { fetchAllOrders() }, [])
 
   if (loading && orders.length === 0) {
     return (
-      <div className='w-[99vw] min-h-[100vh] bg-gradient-to-l from-[#141414] to-[#0c2025] text-[white] flex items-center justify-center'>
+      <div className='flex items-center justify-center h-[60vh]'>
         <Loading />
       </div>
     )
   }
 
-  return (
-    <div className='w-[99vw] min-h-[100vh] bg-gradient-to-l from-[#141414] to-[#0c2025] text-[white]'>
-      
-      <Nav/>
-      <div className='w-[100%] h-[100%] flex items-center lg:justify-start justify-center'>
-        <Sidebar/>
-        <div className='lg:w-[85%] md:w-[70%] h-[100%] lg:ml-[310px] md:ml-[250px] mt-[70px] flex flex-col gap-[30px] overflow-x-hidden py-[50px] ml-[100px]'>
-          <div className='w-[400px] h-[50px] text-[28px] md:text-[40px] mb-[20px] text-white'>All Orders List</div>
-          {
-           orders.map((order,index)=>(
-            <div key={index} className='w-[90%] h-[40%] bg-slate-600 rounded-xl flex lg:items-center items-start justify-between  flex-col lg:flex-row p-[10px] md:px-[20px]  gap-[20px]'>
-            <SiEbox  className='w-[60px] h-[60px] text-[black] p-[5px] rounded-lg bg-[white]'/>
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'Delivered': return 'bg-green-500/20 text-green-400 border-green-500/30'
+      case 'Shipped': return 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+      case 'Out for delivery': return 'bg-purple-500/20 text-purple-400 border-purple-500/30'
+      case 'Packing': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+      default: return 'bg-white/10 text-white/50 border-white/20'
+    }
+  }
 
-            <div className='flex-1'>
-              {/* Product Images and Details */}
-              <div className='flex items-start flex-wrap gap-[10px] mb-[15px]'>
-                {
-                  order.items.map((item, index) => (
-                    <div key={index} className='flex items-center gap-[8px] bg-slate-700 p-[8px] rounded-lg'>
-                      {item.image1 && (
-                        <img 
-                          src={item.image1} 
-                          alt={item.name}
-                          className='w-[50px] h-[50px] rounded-lg object-cover border-2 border-slate-400'
-                        />
-                      )}
-                      <div className='flex flex-col text-[14px]'>
-                        <span className='text-[#56dbfc] font-semibold'>{item.name}</span>
-                        <span className='text-[#bef3da]'>Qty: {item.quantity} | Size: {item.size}</span>
-                      </div>
-                    </div>
-                  ))
-                }
+  return (
+    <div className='max-w-6xl'>
+      {/* Header */}
+      <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6'>
+        <div>
+          <h1 className='text-3xl font-bold text-white'>All Orders</h1>
+          <p className='text-white/40 text-sm mt-1'>{orders.length} total orders</p>
+        </div>
+        <button
+          onClick={fetchAllOrders}
+          className='flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-all text-sm font-medium cursor-pointer'
+        >
+          <HiOutlineRefresh size={16} />
+          Refresh
+        </button>
+      </div>
+
+      {/* Orders List */}
+      <div className='flex flex-col gap-4'>
+        {orders.map((order, index) => (
+          <div key={index} className='bg-white/5 border border-white/10 rounded-xl p-5 hover:bg-white/8 transition-all cursor-pointer group' onClick={() => navigate(`/orders/${order._id}`)}>
+            {/* Order Header */}
+            <div className='flex flex-wrap items-center justify-between gap-3 mb-4 pb-4 border-b border-white/5'>
+              <div className='flex items-center gap-3'>
+                <div className='w-10 h-10 rounded-lg bg-[#0ea5e9]/10 border border-[#0ea5e9]/20 flex items-center justify-center'>
+                  <HiOutlineShoppingCart className='text-[#0ea5e9]' size={18} />
+                </div>
+                <div>
+                  <p className='text-white font-medium text-sm'>
+                    {order.address.firstName} {order.address.lastName}
+                  </p>
+                  <div className='flex items-center gap-1 text-white/40 text-xs'>
+                    <HiOutlineClock size={12} />
+                    <span>{formatIST(order.date)}</span>
+                  </div>
+                </div>
+              </div>
+              <div className='flex items-center gap-3'>
+                <span className='text-white font-bold text-lg'>₹{order.amount}</span>
+                <span className={`text-xs px-3 py-1 rounded-full border ${getStatusColor(order.status)}`}>
+                  {order.status}
+                </span>
+                <HiOutlineChevronRight className='text-white/20 group-hover:text-white/50 transition-colors' size={18} />
+              </div>
+            </div>
+
+            {/* Order Items */}
+            <div className='flex items-start flex-wrap gap-3 mb-4'>
+              {order.items.map((item, idx) => (
+                <div key={idx} className='flex items-center gap-3 bg-white/5 border border-white/10 p-3 rounded-lg'>
+                  <img
+                    src={item.image || item.image1 || ''}
+                    alt={item.name}
+                    className='w-12 h-12 rounded-lg object-cover border border-white/10 bg-white/5'
+                  />
+                  <div className='text-sm'>
+                    <p className='text-white font-medium'>{item.name}</p>
+                    <p className='text-white/40 text-xs'>Qty: {item.quantity} | Size: {item.size}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Footer: Address + Status + Meta */}
+            <div className='flex flex-col lg:flex-row items-start lg:items-end justify-between gap-4'>
+              {/* Delivery Address */}
+              <div className='text-sm text-white/50'>
+                <div className='flex items-center gap-1.5 text-white/70 font-medium mb-1'>
+                  <HiOutlineMapPin size={14} />
+                  <span>Delivery Address</span>
+                </div>
+                <p>{order.address.street}</p>
+                <p>{order.address.city}, {order.address.state}, {order.address.country} - {order.address.pinCode}</p>
+                <div className='flex items-center gap-1.5 mt-1'>
+                  <HiOutlinePhone size={12} />
+                  <span>{order.address.phone}</span>
+                </div>
               </div>
 
-              {/* Delivery Address */}
-              <div className='text-[15px] text-green-100'>
-                  <p className='font-semibold text-white mb-[5px]'>📍 Delivery Address:</p>
-                  <p>{order.address.firstName+" "+ order.address.lastName}</p>
-                  <p>{order.address.street + ", "}</p>
-                  <p>{order.address.city + ", " + order.address.state + ", " + order.address.country + ", " + order.address.pinCode}</p>
-                  <p>📞 {order.address.phone}</p>
+              {/* Meta + Status Selector */}
+              <div className='flex flex-col sm:flex-row items-start sm:items-center gap-3'>
+                <div className='text-xs text-white/40 space-y-0.5'>
+                  <p>Ordered: {formatIST(order.date)}</p>
+                  <p>Items: {order.items.length}</p>
+                  <p>Method: {order.paymentMethod}</p>
+                  <p>Payment: {order.payment ?
+                    <span className='text-green-400'>Done</span> :
+                    <span className='text-yellow-400'>Pending</span>
+                  }</p>
                 </div>
-            </div>
-            <div className='text-[15px] text-green-100'>
-                  <p>Items : {order.items.length}</p>
-                  <p>Method : {order.paymentMethod}</p>
-                  <p>Payment : {order.payment ? 'Done' : 'Pending'}</p>
-                  <p>Date : {new Date(order.date).toLocaleDateString()}</p>
-                   <p className='text-[20px] text-[white]'> ₹ {order.amount}</p>
-                </div>
-                <select  value={order.status} className='px-[5px] py-[10px] bg-slate-500 rounded-lg border-[1px] border-[#96eef3]' onChange={(e)=>statusHandler(e,order._id)} >
-                  <option value="Order Placed">Order Placed</option>
-                  <option value="Packing">Packing</option>
-                  <option value="Shipped">Shipped</option>
-                  <option value="Out for delivery">Out for delivery</option>
-                  <option value="Delivered">Delivered</option>
+                <select
+                  value={order.status}
+                  className='h-10 px-3 bg-white/5 border border-white/10 rounded-lg text-white/70 text-sm focus:border-[#0ea5e9] focus:outline-none cursor-pointer appearance-none min-w-[170px]'
+                  onChange={(e) => statusHandler(e, order._id)}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <option value="Order Placed" className='bg-[#0c2025]'>Order Placed</option>
+                  <option value="Packing" className='bg-[#0c2025]'>Packing</option>
+                  <option value="Shipped" className='bg-[#0c2025]'>Shipped</option>
+                  <option value="Out for delivery" className='bg-[#0c2025]'>Out for delivery</option>
+                  <option value="Delivered" className='bg-[#0c2025]'>Delivered</option>
                 </select>
+              </div>
             </div>
-            
-           ))
-
-          }
-        </div>
+          </div>
+        ))}
       </div>
     </div>
   )

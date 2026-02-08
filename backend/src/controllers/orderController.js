@@ -1,0 +1,311 @@
+import Order from "../models/orderModel.js";
+import User from "../models/userModel.js";
+import Product from "../models/productModel.js";
+import razorpay from 'razorpay'
+import crypto from 'crypto'
+import dotenv from 'dotenv'
+dotenv.config()
+const currency = 'inr'
+const DELIVERY_FEE = 40 // Must match frontend delivery_fee
+const razorpayInstance = new razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET
+})
+
+// Helper: calculate order amount server-side from validated product prices
+const calculateOrderAmount = async (items) => {
+    let total = 0;
+    for (const item of items) {
+        const product = await Product.findById(item.productId || item._id);
+        if (!product) {
+            throw new Error(`Product ${item.name || 'unknown'} not found`);
+        }
+        if (!item.quantity || item.quantity <= 0 || !Number.isInteger(item.quantity)) {
+            throw new Error(`Invalid quantity for ${product.name}`);
+        }
+        total += product.price * item.quantity;
+    }
+    return total + DELIVERY_FEE;
+}
+
+// for User
+export const placeOrder = async (req, res) => {
+    try {
+        const { items, address } = req.body;
+        const userId = req.userId;
+
+        // Recalculate amount server-side - never trust client amount
+        let amount;
+        try {
+            amount = await calculateOrderAmount(items);
+        } catch (err) {
+            return res.status(400).json({ message: err.message });
+        }
+
+        for (const item of items) {
+            const product = await Product.findById(item.productId || item._id)
+
+            if (!product) {
+                return res.status(404).json({ message: `Product ${item.name} not found` })
+            }
+
+            if (product.inventory && product.inventory[item.size]) {
+                const sizeInventory = product.inventory[item.size]
+
+                if (!sizeInventory.available || sizeInventory.stock === 0) {
+                    return res.status(400).json({
+                        message: `${product.name} (Size ${item.size}) is out of stock`,
+                        stockError: true
+                    })
+                }
+
+                if (item.quantity > sizeInventory.stock) {
+                    return res.status(400).json({
+                        message: `${product.name} (Size ${item.size}): Only ${sizeInventory.stock} available, you requested ${item.quantity}`,
+                        stockError: true
+                    })
+                }
+            }
+        }
+
+        const orderData = {
+            items,
+            amount,
+            userId,
+            address,
+            paymentMethod: 'COD',
+            payment: false,
+            date: Date.now()
+        }
+
+        const newOrder = new Order(orderData)
+        await newOrder.save()
+
+        // Atomic inventory decrement to prevent race conditions
+        for (const item of items) {
+            const result = await Product.findOneAndUpdate(
+                {
+                    _id: item.productId || item._id,
+                    [`inventory.${item.size}.stock`]: { $gte: item.quantity },
+                    [`inventory.${item.size}.available`]: true
+                },
+                {
+                    $inc: { [`inventory.${item.size}.stock`]: -item.quantity }
+                },
+                { new: true }
+            );
+
+            if (result) {
+                const updatedStock = result.inventory.get(item.size)?.stock;
+                if (updatedStock !== undefined && updatedStock <= 0) {
+                    await Product.findByIdAndUpdate(item.productId || item._id, {
+                        [`inventory.${item.size}.available`]: false
+                    });
+                }
+            }
+        }
+
+        await User.findByIdAndUpdate(userId, { cartData: {} })
+
+        return res.status(201).json({ message: 'Order Place' })
+    } catch (error) {
+        console.error("placeOrder error:", error)
+        res.status(500).json({ message: 'Order placement failed. Please try again.' })
+    }
+}
+
+
+export const placeOrderRazorpay = async (req, res) => {
+    try {
+        const { items, address } = req.body;
+        const userId = req.userId;
+
+        // Recalculate amount server-side - never trust client amount
+        let amount;
+        try {
+            amount = await calculateOrderAmount(items);
+        } catch (err) {
+            return res.status(400).json({ message: err.message });
+        }
+
+        for (const item of items) {
+            const product = await Product.findById(item.productId || item._id)
+
+            if (!product) {
+                return res.status(404).json({ message: `Product ${item.name} not found` })
+            }
+
+            if (product.inventory && product.inventory[item.size]) {
+                const sizeInventory = product.inventory[item.size]
+
+                if (!sizeInventory.available || sizeInventory.stock === 0) {
+                    return res.status(400).json({
+                        message: `${product.name} (Size ${item.size}) is out of stock`,
+                        stockError: true
+                    })
+                }
+
+                if (item.quantity > sizeInventory.stock) {
+                    return res.status(400).json({
+                        message: `${product.name} (Size ${item.size}): Only ${sizeInventory.stock} available`,
+                        stockError: true
+                    })
+                }
+            }
+        }
+
+        const orderData = {
+            items,
+            amount,
+            userId,
+            address,
+            paymentMethod: 'Razorpay',
+            payment: false,
+            date: Date.now()
+        }
+
+        const newOrder = new Order(orderData)
+        await newOrder.save()
+
+        const options = {
+            amount: amount * 100,
+            currency: currency.toUpperCase(),
+            receipt: newOrder._id.toString()
+        }
+        await razorpayInstance.orders.create(options, (error, order) => {
+            if (error) {
+                console.error("Razorpay order creation error:", error)
+                return res.status(500).json({ message: 'Payment initiation failed. Please try again.' })
+            }
+            res.status(200).json(order)
+        })
+    } catch (error) {
+        console.error("placeOrderRazorpay error:", error)
+        res.status(500).json({
+            message: 'Order placement failed. Please try again.'
+        })
+    }
+}
+
+
+export const verifyRazorpay = async (req, res) => {
+    try {
+        const userId = req.userId
+        const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body
+
+        // Verify Razorpay signature using HMAC-SHA256
+        if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+            return res.status(400).json({ message: 'Missing payment verification data' })
+        }
+
+        const generatedSignature = crypto
+            .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+            .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+            .digest('hex');
+
+        if (generatedSignature !== razorpay_signature) {
+            return res.status(400).json({ message: 'Payment verification failed. Invalid signature.' })
+        }
+
+        const orderInfo = await razorpayInstance.orders.fetch(razorpay_order_id)
+        if (orderInfo.status === 'paid') {
+            const order = await Order.findById(orderInfo.receipt)
+
+            if (order) {
+                // Atomic inventory decrement to prevent race conditions
+                for (const item of order.items) {
+                    const result = await Product.findOneAndUpdate(
+                        {
+                            _id: item.productId || item._id,
+                            [`inventory.${item.size}.stock`]: { $gte: item.quantity },
+                            [`inventory.${item.size}.available`]: true
+                        },
+                        {
+                            $inc: { [`inventory.${item.size}.stock`]: -item.quantity }
+                        },
+                        { new: true }
+                    );
+
+                    if (result) {
+                        const updatedStock = result.inventory.get(item.size)?.stock;
+                        if (updatedStock !== undefined && updatedStock <= 0) {
+                            await Product.findByIdAndUpdate(item.productId || item._id, {
+                                [`inventory.${item.size}.available`]: false
+                            });
+                        }
+                    }
+                }
+            }
+
+            await Order.findByIdAndUpdate(orderInfo.receipt, { payment: true });
+            await User.findByIdAndUpdate(userId, { cartData: {} })
+            res.status(200).json({
+                message: 'Payment Successful'
+            })
+        }
+        else {
+            res.json({
+                message: 'Payment Failed'
+            })
+        }
+    } catch (error) {
+        console.error("verifyRazorpay error:", error)
+        res.status(500).json({
+            message: 'Payment verification failed. Please try again.'
+        })
+    }
+}
+
+
+export const userOrders = async (req, res) => {
+    try {
+        const userId = req.userId;
+        const orders = await Order.find({ userId })
+        return res.status(200).json(orders)
+    } catch (error) {
+        console.error("userOrders error:", error)
+        return res.status(500).json({ message: "Failed to fetch orders" })
+    }
+}
+
+
+// for Admin
+
+export const allOrders = async (req, res) => {
+    try {
+        const orders = await Order.find({})
+        res.status(200).json(orders)
+    } catch (error) {
+        console.error("allOrders error:", error)
+        return res.status(500).json({ message: "Failed to fetch orders" })
+    }
+}
+
+export const getOrderDetail = async (req, res) => {
+    try {
+        const { orderId } = req.body
+        const order = await Order.findById(orderId)
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' })
+        }
+        const user = await User.findById(order.userId).select('name email phone profileImage role createdAt')
+        res.status(200).json({ order, user: user || null })
+    } catch (error) {
+        console.error("getOrderDetail error:", error)
+        return res.status(500).json({ message: 'Failed to fetch order details' })
+    }
+}
+
+export const updateStatus = async (req, res) => {
+    try {
+        const { orderId, status } = req.body
+
+        await Order.findByIdAndUpdate(orderId, { status })
+        return res.status(201).json({ message: 'Status Updated' })
+    } catch (error) {
+        console.error("updateStatus error:", error)
+        return res.status(500).json({
+            message: 'Failed to update order status'
+        })
+    }
+}

@@ -1,716 +1,454 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { authDataContext } from '../context/AuthContext';
-import AddressForm from '../component/AddressForm';
-import AddressCard from '../component/AddressCard';
-import axios from 'axios';
-import { toast } from 'react-toastify';
-import {
-  Box,
-  Container,
-  Paper,
-  Tabs,
-  Tab,
-  Typography,
-  TextField,
-  Button,
-  Avatar,
-  Grid,
-  CircularProgress,
-  Card,
-  CardContent,
-  Divider,
-  IconButton,
-  Chip,
-} from '@mui/material';
-import {
-  Person,
-  LocationOn,
-  Security,
-  Edit,
-  PhotoCamera,
-} from '@mui/icons-material';
+import React, { useState, useEffect, useContext } from 'react'
+import { authDataContext } from '../context/AuthContext'
+import AddressForm from '@/components/profile/AddressForm'
+import AddressCard from '@/components/profile/AddressCard'
+import axios from 'axios'
+import { toast } from 'sonner'
+import { User, MapPin, Shield, Camera, Loader2, Eye, EyeOff } from 'lucide-react'
+import Loading from '@/components/common/Loading'
 
 const Profile = () => {
-  const { serverUrl } = useContext(authDataContext);
-  const [activeTab, setActiveTab] = useState('personal');
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null);
-  const [addresses, setAddresses] = useState([]);
-  const [showAddressForm, setShowAddressForm] = useState(false);
-  const [editingAddress, setEditingAddress] = useState(null);
+  const { serverUrl } = useContext(authDataContext)
+  const [activeTab, setActiveTab] = useState('personal')
+  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState(null)
+  const [addresses, setAddresses] = useState([])
+  const [showAddressForm, setShowAddressForm] = useState(false)
+  const [editingAddress, setEditingAddress] = useState(null)
+  const [saving, setSaving] = useState(false)
 
   // Personal info form
-  const [personalInfo, setPersonalInfo] = useState({ name: '', phone: '' });
-  
+  const [personalInfo, setPersonalInfo] = useState({ name: '', phone: '' })
+
   // Password change form
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
-  });
+  })
+  const [showCurrentPass, setShowCurrentPass] = useState(false)
+  const [showNewPass, setShowNewPass] = useState(false)
 
   // Profile image upload
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
+  const [selectedImage, setSelectedImage] = useState(null)
+  const [imagePreview, setImagePreview] = useState(null)
 
-  // Fetch user profile
   const fetchProfile = async () => {
     try {
-      const response = await axios.get(`${serverUrl}/api/profile/profile`, {
-        withCredentials: true
-      });
-      
+      const response = await axios.get(`${serverUrl}/api/profile/profile`, { withCredentials: true })
       if (response.data.success) {
-        setUser(response.data.user);
-        setPersonalInfo({
-          name: response.data.user.name,
-          phone: response.data.user.phone || ''
-        });
+        setUser(response.data.user)
+        setPersonalInfo({ name: response.data.user.name, phone: response.data.user.phone || '' })
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to fetch profile');
+      toast.error(error.response?.data?.message || 'Failed to fetch profile')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
-  // Fetch addresses
   const fetchAddresses = async () => {
     try {
-      const response = await axios.get(`${serverUrl}/api/profile/addresses`, {
-        withCredentials: true
-      });
-      
+      const response = await axios.get(`${serverUrl}/api/profile/addresses`, { withCredentials: true })
       if (response.data.success) {
-        setAddresses(response.data.addresses);
+        setAddresses(response.data.addresses)
       }
     } catch (error) {
-      toast.error('Failed to fetch addresses');
+      toast.error('Failed to fetch addresses')
     }
-  };
+  }
 
   useEffect(() => {
-    fetchProfile();
-    fetchAddresses();
-  }, []);
+    fetchProfile()
+    fetchAddresses()
+  }, [])
 
-  // Update personal info
   const handleUpdatePersonalInfo = async (e) => {
-    e.preventDefault();
+    e.preventDefault()
+    setSaving(true)
     try {
-      const response = await axios.put(
-        `${serverUrl}/api/profile/profile`,
-        personalInfo,
-        { withCredentials: true }
-      );
-      
+      const response = await axios.put(`${serverUrl}/api/profile/profile`, personalInfo, { withCredentials: true })
       if (response.data.success) {
-        toast.success('Profile updated successfully');
-        setUser(response.data.user);
+        toast.success('Profile updated successfully')
+        setUser(response.data.user)
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to update profile');
+      toast.error(error.response?.data?.message || 'Failed to update profile')
+    } finally {
+      setSaving(false)
     }
-  };
+  }
 
-  // Upload profile image
   const handleImageUpload = async (e) => {
-    e.preventDefault();
-    if (!selectedImage) {
-      toast.error('Please select an image');
-      return;
-    }
-
+    e.preventDefault()
+    if (!selectedImage) { toast.error('Please select an image'); return }
+    setSaving(true)
     try {
-      const formData = new FormData();
-      formData.append('image', selectedImage);
-
-      const response = await axios.post(
-        `${serverUrl}/api/profile/profile/avatar`,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          },
-          withCredentials: true
-        }
-      );
-
+      const formData = new FormData()
+      formData.append('image', selectedImage)
+      const response = await axios.post(`${serverUrl}/api/profile/profile/avatar`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        withCredentials: true
+      })
       if (response.data.success) {
-        toast.success('Profile image updated');
-        setUser(prev => ({ ...prev, profileImage: response.data.profileImage }));
-        setSelectedImage(null);
-        setImagePreview(null);
+        toast.success('Profile image updated')
+        setUser(prev => ({ ...prev, profileImage: response.data.profileImage }))
+        setSelectedImage(null)
+        setImagePreview(null)
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to upload image');
+      toast.error(error.response?.data?.message || 'Failed to upload image')
+    } finally {
+      setSaving(false)
     }
-  };
+  }
 
   const handleImageChange = (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files[0]
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error('Image size must be less than 5MB');
-        return;
-      }
-      setSelectedImage(file);
-      setImagePreview(URL.createObjectURL(file));
+      if (file.size > 5 * 1024 * 1024) { toast.error('Image size must be less than 5MB'); return }
+      setSelectedImage(file)
+      setImagePreview(URL.createObjectURL(file))
     }
-  };
+  }
 
-  // Change password
   const handleChangePassword = async (e) => {
-    e.preventDefault();
-    
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast.error('New passwords do not match');
-      return;
-    }
-
-    if (passwordData.newPassword.length < 8) {
-      toast.error('Password must be at least 8 characters');
-      return;
-    }
-
+    e.preventDefault()
+    if (passwordData.newPassword !== passwordData.confirmPassword) { toast.error('New passwords do not match'); return }
+    if (passwordData.newPassword.length < 8) { toast.error('Password must be at least 8 characters'); return }
+    setSaving(true)
     try {
-      const response = await axios.put(
-        `${serverUrl}/api/profile/change-password`,
-        {
-          currentPassword: passwordData.currentPassword,
-          newPassword: passwordData.newPassword
-        },
-        { withCredentials: true }
-      );
-
+      const response = await axios.put(`${serverUrl}/api/profile/change-password`, {
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword
+      }, { withCredentials: true })
       if (response.data.success) {
-        toast.success('Password changed successfully');
-        setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+        toast.success('Password changed successfully')
+        setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' })
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to change password');
+      toast.error(error.response?.data?.message || 'Failed to change password')
+    } finally {
+      setSaving(false)
     }
-  };
+  }
 
-  // Address operations
   const handleAddAddress = async (formData) => {
     try {
-      const response = await axios.post(
-        `${serverUrl}/api/profile/address`,
-        formData,
-        { withCredentials: true }
-      );
-
+      const response = await axios.post(`${serverUrl}/api/profile/address`, formData, { withCredentials: true })
       if (response.data.success) {
-        toast.success('Address added successfully');
-        fetchAddresses();
-        setShowAddressForm(false);
+        toast.success('Address added successfully')
+        fetchAddresses()
+        setShowAddressForm(false)
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to add address');
+      toast.error(error.response?.data?.message || 'Failed to add address')
     }
-  };
+  }
 
   const handleUpdateAddress = async (formData) => {
     try {
-      const response = await axios.put(
-        `${serverUrl}/api/profile/address/${editingAddress._id}`,
-        formData,
-        { withCredentials: true }
-      );
-
+      const response = await axios.put(`${serverUrl}/api/profile/address/${editingAddress._id}`, formData, { withCredentials: true })
       if (response.data.success) {
-        toast.success('Address updated successfully');
-        fetchAddresses();
-        setShowAddressForm(false);
-        setEditingAddress(null);
+        toast.success('Address updated successfully')
+        fetchAddresses()
+        setShowAddressForm(false)
+        setEditingAddress(null)
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to update address');
+      toast.error(error.response?.data?.message || 'Failed to update address')
     }
-  };
+  }
 
   const handleDeleteAddress = async (addressId) => {
-    if (!window.confirm('Are you sure you want to delete this address?')) return;
-
+    if (!window.confirm('Are you sure you want to delete this address?')) return
     try {
-      const response = await axios.delete(
-        `${serverUrl}/api/profile/address/${addressId}`,
-        { withCredentials: true }
-      );
-
+      const response = await axios.delete(`${serverUrl}/api/profile/address/${addressId}`, { withCredentials: true })
       if (response.data.success) {
-        toast.success('Address deleted successfully');
-        fetchAddresses();
+        toast.success('Address deleted successfully')
+        fetchAddresses()
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to delete address');
+      toast.error(error.response?.data?.message || 'Failed to delete address')
     }
-  };
+  }
 
   const handleSetDefaultAddress = async (addressId) => {
     try {
-      const response = await axios.put(
-        `${serverUrl}/api/profile/address/${addressId}/default`,
-        {},
-        { withCredentials: true }
-      );
-
+      const response = await axios.put(`${serverUrl}/api/profile/address/${addressId}/default`, {}, { withCredentials: true })
       if (response.data.success) {
-        toast.success('Default address updated');
-        fetchAddresses();
+        toast.success('Default address updated')
+        fetchAddresses()
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to set default address');
+      toast.error(error.response?.data?.message || 'Failed to set default address')
     }
-  };
+  }
 
   const handleEditAddress = (address) => {
-    setEditingAddress(address);
-    setShowAddressForm(true);
-  };
+    setEditingAddress(address)
+    setShowAddressForm(true)
+  }
 
   const handleCancelAddressForm = () => {
-    setShowAddressForm(false);
-    setEditingAddress(null);
-  };
+    setShowAddressForm(false)
+    setEditingAddress(null)
+  }
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
-        <CircularProgress size={60} />
-      </Box>
-    );
+      <div className='w-full min-h-screen bg-gradient-to-l from-[#141414] to-[#0c2025] flex items-center justify-center'>
+        <Loading />
+      </div>
+    )
   }
 
+  const tabs = [
+    { id: 'personal', label: 'Personal Info', icon: User },
+    { id: 'addresses', label: 'Addresses', icon: MapPin },
+    { id: 'security', label: 'Security', icon: Shield },
+  ]
+
   return (
-    <Box 
-      sx={{ 
-        minHeight: '100vh',
-        background: 'linear-gradient(to left, #141414, #0c2025)',
-        pt: { xs: '90px', md: '90px' },
-        pb: { xs: 12, md: 4 }
-      }}
-    >
-      <Container maxWidth="lg">
-        <Typography 
-          variant="h4" 
-          fontWeight="bold" 
-          gutterBottom 
-          sx={{ 
-            mb: 4, 
-            color: 'white',
-            textAlign: { xs: 'center', md: 'left' }
-          }}
-        >
-          My Profile
-        </Typography>
+    <div className='w-full min-h-screen bg-gradient-to-l from-[#141414] to-[#0c2025] pb-28 md:pb-10'>
+      <div className='max-w-4xl mx-auto px-4 md:px-8 pt-24 md:pt-28'>
+        {/* Header */}
+        <h1 className='text-2xl md:text-3xl font-bold text-white mb-6'>My Profile</h1>
 
-        <Paper 
-          elevation={8} 
-          sx={{ 
-            mb: 3,
-            borderRadius: 3,
-            overflow: 'hidden',
-            bgcolor: 'rgba(255, 255, 255, 0.95)'
-          }}
-        >
-        <Tabs
-          value={activeTab}
-          onChange={(e, newValue) => setActiveTab(newValue)}
-          variant="scrollable"
-          scrollButtons="auto"
-          sx={{
-            bgcolor: 'rgba(12, 32, 37, 0.08)',
-            '& .MuiTab-root': { 
-              textTransform: 'none', 
-              fontSize: { xs: '0.875rem', md: '1rem' },
-              fontWeight: 600,
-              color: '#555',
-              py: 2,
-              minWidth: { xs: 'auto', md: 120 },
-              px: { xs: 2, md: 3 }
-            },
-            '& .Mui-selected': {
-              color: '#0c2025 !important'
-            },
-            '& .MuiTabs-indicator': {
-              height: 3,
-              bgcolor: '#0c2025'
-            },
-            '& .MuiTabs-scrollButtons': {
-              color: '#0c2025',
-              '&.Mui-disabled': {
-                opacity: 0.3
-              }
-            }
-          }}
-        >
-          <Tab 
-            icon={<Person sx={{ display: { xs: 'none', sm: 'block' } }} />} 
-            iconPosition="start" 
-            label="Personal Info" 
-            value="personal"
-          />
-          <Tab 
-            icon={<LocationOn sx={{ display: { xs: 'none', sm: 'block' } }} />} 
-            iconPosition="start" 
-            label="Addresses" 
-            value="addresses"
-          />
-          <Tab 
-            icon={<Security sx={{ display: { xs: 'none', sm: 'block' } }} />} 
-            iconPosition="start" 
-            label="Security" 
-            value="security"
-          />
-        </Tabs>
-
-        <Box sx={{ p: 3 }}>
-          {/* Personal Info Tab */}
-          {activeTab === 'personal' && (
-            <Box>
-              {/* Profile Image Section */}
-              <Card 
-                elevation={3} 
-                sx={{ 
-                  mb: 3, 
-                  bgcolor: 'white',
-                  borderRadius: 3,
-                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)'
-                }}
+        {/* Tabs */}
+        <div className='flex gap-1 mb-6 bg-[#ffffff08] rounded-xl p-1 border border-[#80808030] overflow-x-auto'>
+          {tabs.map(tab => {
+            const Icon = tab.icon
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer whitespace-nowrap flex-1 justify-center ${
+                  activeTab === tab.id
+                    ? 'bg-[#0ea5e9] text-white shadow-lg shadow-[#0ea5e9]/20'
+                    : 'text-gray-400 hover:text-white hover:bg-[#ffffff08]'
+                }`}
               >
-                <CardContent>
-                  <Typography variant="h6" gutterBottom fontWeight="600">
-                    Profile Picture
-                  </Typography>
-                  <Box display="flex" alignItems="center" gap={3}>
-                    <Box position="relative">
-                      <Avatar
-                        src={imagePreview || user?.profileImage}
-                        alt={user?.name}
-                        sx={{ 
-                          width: { xs: 80, md: 100 }, 
-                          height: { xs: 80, md: 100 },
-                          fontSize: '2.5rem',
-                          bgcolor: 'linear-gradient(135deg, #0c2025 0%, #1a1a1a 100%)',
-                          background: 'linear-gradient(135deg, #0c2025 0%, #1a1a1a 100%)',
-                          border: '3px solid #88d9ee',
-                          boxShadow: '0 4px 20px rgba(136, 217, 238, 0.3)'
-                        }}
+                <Icon className='w-4 h-4' />
+                <span className='hidden sm:inline'>{tab.label}</span>
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Personal Info Tab */}
+        {activeTab === 'personal' && (
+          <div className='space-y-6'>
+            {/* Profile Picture */}
+            <div className='bg-[#ffffff08] border border-[#80808030] rounded-xl p-5 md:p-6'>
+              <h2 className='text-lg font-semibold text-white mb-4'>Profile Picture</h2>
+              <div className='flex items-center gap-5'>
+                <div className='relative'>
+                  <div className='w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden border-2 border-[#0ea5e9]/40 shadow-lg shadow-[#0ea5e9]/10'>
+                    {imagePreview || user?.profileImage ? (
+                      <img src={imagePreview || user?.profileImage} alt={user?.name} className='w-full h-full object-cover' />
+                    ) : (
+                      <div className='w-full h-full bg-gradient-to-br from-[#0c2025] to-[#1a1a1a] flex items-center justify-center text-3xl font-bold text-[#0ea5e9]'>
+                        {user?.name?.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                  <label className='absolute -bottom-1 -right-1 w-8 h-8 bg-[#0ea5e9] hover:bg-[#0284c7] rounded-full flex items-center justify-center cursor-pointer transition-colors border-2 border-[#1a1a1a] shadow-md'>
+                    <Camera className='w-3.5 h-3.5 text-white' />
+                    <input type="file" hidden accept="image/jpeg,image/png,image/jpg" onChange={handleImageChange} />
+                  </label>
+                </div>
+                <div className='flex-1'>
+                  {selectedImage && (
+                    <div className='mb-2'>
+                      <p className='text-sm text-gray-400 mb-2 truncate'>{selectedImage.name}</p>
+                      <button
+                        onClick={handleImageUpload}
+                        disabled={saving}
+                        className='px-4 py-2 bg-[#0ea5e9] hover:bg-[#0284c7] text-white text-sm font-medium rounded-lg transition-colors cursor-pointer disabled:opacity-50'
                       >
-                        {!imagePreview && !user?.profileImage && user?.name?.charAt(0).toUpperCase()}
-                      </Avatar>
-                      <IconButton
-                        component="label"
-                        sx={{
-                          position: 'absolute',
-                          bottom: -4,
-                          right: -4,
-                          bgcolor: '#0c2025',
-                          color: 'white',
-                          '&:hover': { bgcolor: '#1a1a1a' },
-                          width: 40,
-                          height: 40,
-                          border: '2px solid white',
-                          boxShadow: '0 2px 10px rgba(0,0,0,0.2)'
-                        }}
-                      >
-                        <PhotoCamera fontSize="small" />
-                        <input
-                          type="file"
-                          hidden
-                          accept="image/jpeg,image/png,image/jpg"
-                          onChange={handleImageChange}
-                        />
-                      </IconButton>
-                    </Box>
-                    <Box flex={1}>
-                      {selectedImage && (
-                        <Box>
-                          <Typography variant="body2" color="text.secondary" gutterBottom>
-                            {selectedImage.name}
-                          </Typography>
-                          <Button
-                            variant="contained"
-                            onClick={handleImageUpload}
-                            size="medium"
-                            sx={{
-                              bgcolor: '#0c2025',
-                              '&:hover': {
-                                bgcolor: '#1a1a1a'
-                              },
-                              borderRadius: 2,
-                              textTransform: 'none',
-                              fontWeight: 600
-                            }}
-                          >
-                            Upload Image
-                          </Button>
-                        </Box>
-                      )}
-                      <Typography variant="caption" color="text.secondary" display="block" mt={1}>
-                        Max 5MB, JPG/PNG only
-                      </Typography>
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
-
-              {/* Personal Details Section */}
-              <Card 
-                elevation={3} 
-                sx={{ 
-                  bgcolor: 'white',
-                  borderRadius: 3,
-                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)'
-                }}
-              >
-                <CardContent>
-                  <Typography variant="h6" gutterBottom fontWeight="600">
-                    Personal Details
-                  </Typography>
-                  <Box component="form" onSubmit={handleUpdatePersonalInfo}>
-                    <Grid container spacing={3}>
-                      <Grid item xs={12}>
-                        <TextField
-                          fullWidth
-                          label="Email"
-                          type="email"
-                          value={user?.email || ''}
-                          disabled
-                          helperText="Email cannot be changed"
-                          variant="outlined"
-                        />
-                      </Grid>
-                      <Grid item xs={12} md={6}>
-                        <TextField
-                          fullWidth
-                          label="Name"
-                          type="text"
-                          value={personalInfo.name}
-                          onChange={(e) => setPersonalInfo({ ...personalInfo, name: e.target.value })}
-                          required
-                          variant="outlined"
-                        />
-                      </Grid>
-                      <Grid item xs={12} md={6}>
-                        <TextField
-                          fullWidth
-                          label="Phone"
-                          type="tel"
-                          value={personalInfo.phone}
-                          onChange={(e) => setPersonalInfo({ ...personalInfo, phone: e.target.value })}
-                          variant="outlined"
-                        />
-                      </Grid>
-                      <Grid item xs={12}>
-                        <Button
-                          type="submit"
-                          variant="contained"
-                          size="large"
-                          sx={{
-                            bgcolor: '#0c2025',
-                            '&:hover': {
-                              bgcolor: '#1a1a1a'
-                            },
-                            borderRadius: 2,
-                            textTransform: 'none',
-                            fontWeight: 600,
-                            py: 1.5
-                          }}
-                        >
-                          Save Changes
-                        </Button>
-                      </Grid>
-                    </Grid>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Box>
-          )}
-
-          {/* Addresses Tab */}
-          {activeTab === 'addresses' && (
-            <Box>
-              {!showAddressForm ? (
-                <>
-                  <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-                    <Typography variant="h6" fontWeight="600">
-                      Saved Addresses
-                    </Typography>
-                    <Button
-                      variant="contained"
-                      startIcon={<LocationOn />}
-                      onClick={() => setShowAddressForm(true)}
-                      sx={{
-                        bgcolor: '#0c2025',
-                        '&:hover': {
-                          bgcolor: '#1a1a1a'
-                        },
-                        borderRadius: 2,
-                        textTransform: 'none',
-                        fontWeight: 600
-                      }}
-                    >
-                      Add New Address
-                    </Button>
-                  </Box>
-
-                  {addresses.length === 0 ? (
-                    <Card 
-                      elevation={2} 
-                      sx={{ 
-                        bgcolor: 'white', 
-                        py: 6,
-                        borderRadius: 3,
-                        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)'
-                      }}
-                    >
-                      <CardContent>
-                        <Box textAlign="center">
-                          <LocationOn sx={{ fontSize: 60, color: 'grey.400', mb: 2 }} />
-                          <Typography variant="h6" color="text.secondary" gutterBottom>
-                            No saved addresses yet
-                          </Typography>
-                          <Button
-                            variant="contained"
-                            onClick={() => setShowAddressForm(true)}
-                            sx={{ 
-                              mt: 2,
-                              bgcolor: '#0c2025',
-                              '&:hover': {
-                                bgcolor: '#1a1a1a'
-                              },
-                              borderRadius: 2,
-                              textTransform: 'none',
-                              fontWeight: 600
-                            }}
-                          >
-                            Add your first address
-                          </Button>
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <Grid container spacing={3}>
-                      {addresses.map((address) => (
-                        <Grid item xs={12} md={6} key={address._id}>
-                          <AddressCard
-                            address={address}
-                            onEdit={handleEditAddress}
-                            onDelete={handleDeleteAddress}
-                            onSetDefault={handleSetDefaultAddress}
-                          />
-                        </Grid>
-                      ))}
-                    </Grid>
+                        {saving ? <Loader2 className='w-4 h-4 animate-spin' /> : 'Upload'}
+                      </button>
+                    </div>
                   )}
-                </>
-              ) : (
-                <Card 
-                  elevation={3} 
-                  sx={{ 
-                    bgcolor: 'white',
-                    borderRadius: 3,
-                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)'
-                  }}
-                >
-                  <CardContent>
-                    <Typography variant="h6" gutterBottom fontWeight="600">
-                      {editingAddress ? 'Edit Address' : 'Add New Address'}
-                    </Typography>
-                    <AddressForm
-                      address={editingAddress}
-                      onSubmit={editingAddress ? handleUpdateAddress : handleAddAddress}
-                      onCancel={handleCancelAddressForm}
+                  <p className='text-xs text-gray-500'>Max 5MB, JPG/PNG only</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Personal Details */}
+            <div className='bg-[#ffffff08] border border-[#80808030] rounded-xl p-5 md:p-6'>
+              <h2 className='text-lg font-semibold text-white mb-4'>Personal Details</h2>
+              <form onSubmit={handleUpdatePersonalInfo} className='space-y-4'>
+                <div>
+                  <label className='block text-sm text-gray-400 mb-1.5'>Email</label>
+                  <input
+                    type="email"
+                    value={user?.email || ''}
+                    disabled
+                    className='w-full px-4 py-3 bg-[#ffffff05] border border-[#80808030] rounded-lg text-gray-500 text-sm cursor-not-allowed'
+                  />
+                  <p className='text-xs text-gray-600 mt-1'>Email cannot be changed</p>
+                </div>
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                  <div>
+                    <label className='block text-sm text-gray-400 mb-1.5'>Name</label>
+                    <input
+                      type="text"
+                      value={personalInfo.name}
+                      onChange={(e) => setPersonalInfo({ ...personalInfo, name: e.target.value })}
+                      required
+                      className='w-full px-4 py-3 bg-[#ffffff08] border border-[#80808030] rounded-lg text-white text-sm focus:outline-none focus:border-[#0ea5e9] transition-colors'
                     />
-                  </CardContent>
-                </Card>
-              )}
-            </Box>
-          )}
+                  </div>
+                  <div>
+                    <label className='block text-sm text-gray-400 mb-1.5'>Phone</label>
+                    <input
+                      type="tel"
+                      value={personalInfo.phone}
+                      onChange={(e) => setPersonalInfo({ ...personalInfo, phone: e.target.value })}
+                      className='w-full px-4 py-3 bg-[#ffffff08] border border-[#80808030] rounded-lg text-white text-sm focus:outline-none focus:border-[#0ea5e9] transition-colors'
+                    />
+                  </div>
+                </div>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className='px-6 py-3 bg-[#0ea5e9] hover:bg-[#0284c7] text-white font-semibold rounded-xl transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2'
+                >
+                  {saving ? <Loader2 className='w-4 h-4 animate-spin' /> : null}
+                  Save Changes
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
 
-          {/* Security Tab */}
-          {activeTab === 'security' && (
-            <Card 
-              elevation={3} 
-              sx={{ 
-                bgcolor: 'white',
-                borderRadius: 3,
-                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)'
-              }}
-            >
-              <CardContent>
-                <Typography variant="h6" gutterBottom fontWeight="600">
-                  Change Password
-                </Typography>
-                <Box component="form" onSubmit={handleChangePassword} maxWidth="sm">
-                  <Grid container spacing={3}>
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="Current Password"
-                        type="password"
-                        value={passwordData.currentPassword}
-                        onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                        required
-                        variant="outlined"
-                      />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="New Password"
-                        type="password"
-                        value={passwordData.newPassword}
-                        onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                        required
-                        helperText="Minimum 8 characters"
-                        inputProps={{ minLength: 8 }}
-                        variant="outlined"
-                      />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="Confirm New Password"
-                        type="password"
-                        value={passwordData.confirmPassword}
-                        onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                        required
-                        variant="outlined"
-                      />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <Button
-                        type="submit"
-                        variant="contained"
-                        size="large"
-                        sx={{
-                          bgcolor: '#0c2025',
-                          '&:hover': {
-                            bgcolor: '#1a1a1a'
-                          },
-                          borderRadius: 2,
-                          textTransform: 'none',
-                          fontWeight: 600,
-                          py: 1.5
-                        }}
-                      >
-                        Change Password
-                      </Button>
-                    </Grid>
-                  </Grid>
-                </Box>
-              </CardContent>
-            </Card>
-          )}
-        </Box>
-      </Paper>
-    </Container>
-    </Box>
-  );
-};
+        {/* Addresses Tab */}
+        {activeTab === 'addresses' && (
+          <div>
+            {!showAddressForm ? (
+              <>
+                <div className='flex items-center justify-between mb-5'>
+                  <h2 className='text-lg font-semibold text-white'>Saved Addresses</h2>
+                  <button
+                    onClick={() => setShowAddressForm(true)}
+                    className='flex items-center gap-2 px-4 py-2.5 bg-[#0ea5e9] hover:bg-[#0284c7] text-white text-sm font-medium rounded-lg transition-colors cursor-pointer'
+                  >
+                    <MapPin className='w-4 h-4' />
+                    Add Address
+                  </button>
+                </div>
 
-export default Profile;
+                {addresses.length === 0 ? (
+                  <div className='bg-[#ffffff08] border border-[#80808030] rounded-xl p-10 text-center'>
+                    <MapPin className='w-14 h-14 text-gray-600 mx-auto mb-3' />
+                    <h3 className='text-lg font-semibold text-white mb-1'>No saved addresses</h3>
+                    <p className='text-sm text-gray-500 mb-4'>Add an address for faster checkout</p>
+                    <button
+                      onClick={() => setShowAddressForm(true)}
+                      className='px-5 py-2.5 bg-[#0ea5e9] hover:bg-[#0284c7] text-white text-sm font-medium rounded-lg transition-colors cursor-pointer'
+                    >
+                      Add your first address
+                    </button>
+                  </div>
+                ) : (
+                  <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                    {addresses.map((address) => (
+                      <AddressCard
+                        key={address._id}
+                        address={address}
+                        onEdit={handleEditAddress}
+                        onDelete={handleDeleteAddress}
+                        onSetDefault={handleSetDefaultAddress}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className='bg-[#ffffff08] border border-[#80808030] rounded-xl p-5 md:p-6'>
+                <h2 className='text-lg font-semibold text-white mb-4'>
+                  {editingAddress ? 'Edit Address' : 'Add New Address'}
+                </h2>
+                <AddressForm
+                  address={editingAddress}
+                  onSubmit={editingAddress ? handleUpdateAddress : handleAddAddress}
+                  onCancel={handleCancelAddressForm}
+                />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Security Tab */}
+        {activeTab === 'security' && (
+          <div className='bg-[#ffffff08] border border-[#80808030] rounded-xl p-5 md:p-6'>
+            <h2 className='text-lg font-semibold text-white mb-4'>Change Password</h2>
+            <form onSubmit={handleChangePassword} className='space-y-4 max-w-md'>
+              <div>
+                <label className='block text-sm text-gray-400 mb-1.5'>Current Password</label>
+                <div className='relative'>
+                  <input
+                    type={showCurrentPass ? 'text' : 'password'}
+                    value={passwordData.currentPassword}
+                    onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                    required
+                    className='w-full px-4 py-3 pr-11 bg-[#ffffff08] border border-[#80808030] rounded-lg text-white text-sm focus:outline-none focus:border-[#0ea5e9] transition-colors'
+                  />
+                  <button type="button" onClick={() => setShowCurrentPass(!showCurrentPass)} className='absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 cursor-pointer'>
+                    {showCurrentPass ? <EyeOff className='w-4 h-4' /> : <Eye className='w-4 h-4' />}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className='block text-sm text-gray-400 mb-1.5'>New Password</label>
+                <div className='relative'>
+                  <input
+                    type={showNewPass ? 'text' : 'password'}
+                    value={passwordData.newPassword}
+                    onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                    required
+                    minLength={8}
+                    className='w-full px-4 py-3 pr-11 bg-[#ffffff08] border border-[#80808030] rounded-lg text-white text-sm focus:outline-none focus:border-[#0ea5e9] transition-colors'
+                  />
+                  <button type="button" onClick={() => setShowNewPass(!showNewPass)} className='absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 cursor-pointer'>
+                    {showNewPass ? <EyeOff className='w-4 h-4' /> : <Eye className='w-4 h-4' />}
+                  </button>
+                </div>
+                <p className='text-xs text-gray-600 mt-1'>Minimum 8 characters</p>
+              </div>
+              <div>
+                <label className='block text-sm text-gray-400 mb-1.5'>Confirm New Password</label>
+                <input
+                  type="password"
+                  value={passwordData.confirmPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                  required
+                  className={`w-full px-4 py-3 bg-[#ffffff08] border rounded-lg text-white text-sm focus:outline-none transition-colors ${
+                    passwordData.confirmPassword && passwordData.newPassword !== passwordData.confirmPassword
+                      ? 'border-red-500/50 focus:border-red-500'
+                      : 'border-[#80808030] focus:border-[#0ea5e9]'
+                  }`}
+                />
+                {passwordData.confirmPassword && passwordData.newPassword !== passwordData.confirmPassword && (
+                  <p className='text-xs text-red-400 mt-1'>Passwords do not match</p>
+                )}
+              </div>
+              <button
+                type="submit"
+                disabled={saving}
+                className='px-6 py-3 bg-[#0ea5e9] hover:bg-[#0284c7] text-white font-semibold rounded-xl transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2'
+              >
+                {saving ? <Loader2 className='w-4 h-4 animate-spin' /> : null}
+                Change Password
+              </button>
+            </form>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export default Profile

@@ -1,7 +1,7 @@
 import React from 'react'
-import Title from '../component/Title'
+import Title from '@/components/common/Title'
 import contact from "../assets/contact.jpg"
-import NewLetterBox from '../component/NewLetterBox'
+import NewsletterBox from '@/components/home/NewsletterBox'
 
 function Contact() {
   return (
@@ -26,7 +26,7 @@ function Contact() {
         <button className='px-[30px] py-[20px] flex items-center justify-center text-[white] bg-transparent border active:bg-slate-600 rounded-md' >Explore Jobs</button>
         </div>
       </div>
-      <NewLetterBox/>
+      <NewsletterBox/>
       
     </div>
   )

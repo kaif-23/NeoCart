@@ -3,7 +3,7 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import Registration from './pages/Registration'
 import Home from './pages/Home'
 import Login from './pages/Login'
-import Nav from './component/Nav'
+import Nav from '@/components/layout/Nav'
 import { userDataContext } from './context/UserContext'
 import About from './pages/About'
 import Collections from './pages/Collections'
@@ -16,9 +16,9 @@ import Order from './pages/Order'
 import Profile from './pages/Profile'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
-import { ToastContainer } from 'react-toastify';
+import { Toaster } from '@/components/ui/toaster'
 import NotFound from './pages/NotFound'
-import Ai from './component/Ai'
+import Ai from '@/components/layout/Ai'
 
 function App() {
   let {userData} = useContext(userDataContext)
@@ -26,7 +26,7 @@ function App() {
   
   return (
     <>
-      <ToastContainer />
+      <Toaster />
       <Nav/>
       <Routes>
         {/* Authentication routes - redirect to home if already logged in */}
