@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react'
-import { shopDataContext } from '../context/ShopContext'
-import Title from './Title'
-import Card from './Card'
+import { shopDataContext } from '@/context/ShopContext'
+import Title from '@/components/common/Title'
+import ProductCard from '@/components/product/ProductCard'
 import { FaArrowRight } from 'react-icons/fa'
 import { useNavigate } from 'react-router-dom'
 
@@ -52,7 +52,7 @@ function RelatedProduct({category,subCategory,currentProductId }) {
         <div className='w-[100%] mt-[30px] flex items-center justify-center lg:justify-start flex-wrap gap-[30px] md:gap-[50px]'>
             {
                 related.map((item,index)=>(
-                    <Card 
+                    <ProductCard 
                         key={index} 
                         id={item._id} 
                         name={item.name} 

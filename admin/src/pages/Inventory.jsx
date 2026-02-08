@@ -1,10 +1,9 @@
 import React, { useContext, useEffect, useState, useCallback } from 'react'
-import Nav from '../component/Nav'
-import Sidebar from '../component/Sidebar'
 import { authDataContext } from '../context/AuthContext'
 import axios from 'axios'
 import { toast } from 'react-toastify'
 import Loading from '../component/Loading'
+import { HiOutlineSearch, HiOutlineRefresh, HiOutlinePencil, HiOutlineCheck, HiOutlineX } from 'react-icons/hi'
 
 function Inventory() {
   const [list, setList] = useState([])
@@ -28,34 +27,21 @@ function Inventory() {
     }
   }, [serverUrl])
 
-  // Auto-refresh every 10 seconds
   useEffect(() => {
-    const interval = setInterval(() => {
-      fetchList()
-    }, 10000) // Refresh every 10 seconds
-
+    const interval = setInterval(() => { fetchList() }, 10000)
     return () => clearInterval(interval)
   }, [fetchList])
 
   const initializeAllInventory = async () => {
     try {
-      toast.info('Initializing inventory... Please wait')
-      
-      const result = await axios.post(
-        `${serverUrl}/api/product/initialize-inventory`,
-        {},
-        { withCredentials: true }
-      )
-      
-      // Show detailed success message
+      toast.info('Initializing inventory...')
+      const result = await axios.post(`${serverUrl}/api/product/initialize-inventory`, {}, { withCredentials: true })
       const { updated, alreadyInitialized, totalProducts } = result.data
       if (updated > 0) {
-        toast.success(`✅ ${updated} products updated! (${alreadyInitialized} already had inventory)`)
+        toast.success(`${updated} products updated! (${alreadyInitialized} already had inventory)`)
       } else {
         toast.info(`All ${totalProducts} products already have inventory initialized`)
       }
-      
-      // Refresh the list to show updates
       await fetchList()
     } catch (error) {
       toast.error("Failed to initialize inventory: " + (error.response?.data?.message || error.message))
@@ -64,52 +50,26 @@ function Inventory() {
 
   const handleEdit = (product) => {
     setEditingProduct(product._id)
-    // Initialize inventory data for editing
     const tempInventory = {}
-    
-    // Handle both Map and plain object formats
     const inventory = product.inventory || {}
-    
     product.sizes.forEach(size => {
-      // Try to get from Map-like structure or plain object
       const sizeData = inventory[size] || inventory.get?.(size) || { stock: 0, available: true }
-      tempInventory[size] = {
-        stock: sizeData.stock || 0,
-        available: sizeData.available !== false
-      }
+      tempInventory[size] = { stock: sizeData.stock || 0, available: sizeData.available !== false }
     })
-    
     setInventoryData(tempInventory)
   }
 
   const handleStockChange = (size, value) => {
-    setInventoryData(prev => ({
-      ...prev,
-      [size]: {
-        ...prev[size],
-        stock: parseInt(value) || 0
-      }
-    }))
+    setInventoryData(prev => ({ ...prev, [size]: { ...prev[size], stock: parseInt(value) || 0 } }))
   }
 
   const handleAvailabilityToggle = (size) => {
-    setInventoryData(prev => ({
-      ...prev,
-      [size]: {
-        ...prev[size],
-        available: !prev[size].available
-      }
-    }))
+    setInventoryData(prev => ({ ...prev, [size]: { ...prev[size], available: !prev[size].available } }))
   }
 
   const handleSave = async (productId) => {
     try {
-      await axios.put(
-        `${serverUrl}/api/product/inventory/${productId}`,
-        { inventory: inventoryData },
-        { withCredentials: true }
-      )
-      
+      await axios.put(`${serverUrl}/api/product/inventory/${productId}`, { inventory: inventoryData }, { withCredentials: true })
       toast.success("Inventory updated successfully")
       setEditingProduct(null)
       fetchList()
@@ -123,13 +83,10 @@ function Inventory() {
     setInventoryData({})
   }
 
-  // Get stock status for filtering
   const getStockStatus = (product) => {
     if (!product.inventory) return 'unknown'
-    
     let totalStock = 0
     let allOutOfStock = true
-    
     for (const size in product.inventory) {
       const sizeData = product.inventory[size]
       if (sizeData.available && sizeData.stock > 0) {
@@ -137,147 +94,143 @@ function Inventory() {
         allOutOfStock = false
       }
     }
-    
     if (allOutOfStock) return 'out'
     if (totalStock <= 20) return 'low'
     return 'in'
   }
 
-  // Filter products based on search, category, and stock status
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'out': return { text: 'Out of Stock', cls: 'bg-red-500/20 text-red-400' }
+      case 'low': return { text: 'Low Stock', cls: 'bg-yellow-500/20 text-yellow-400' }
+      case 'in': return { text: 'In Stock', cls: 'bg-green-500/20 text-green-400' }
+      default: return { text: 'Unknown', cls: 'bg-white/10 text-white/40' }
+    }
+  }
+
   const filteredList = list.filter(product => {
-    // Search filter
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.category.toLowerCase().includes(searchTerm.toLowerCase())
-    
-    // Category filter
     const matchesCategory = categoryFilter === 'All' || product.category === categoryFilter
-    
-    // Stock filter
     const stockStatus = getStockStatus(product)
     const matchesStock = stockFilter === 'All' ||
       (stockFilter === 'In Stock' && stockStatus === 'in') ||
       (stockFilter === 'Low Stock' && stockStatus === 'low') ||
       (stockFilter === 'Out of Stock' && stockStatus === 'out')
-    
     return matchesSearch && matchesCategory && matchesStock
   })
 
-  useEffect(() => {
-    fetchList()
-  }, [fetchList])
+  useEffect(() => { fetchList() }, [fetchList])
 
   if (loading && list.length === 0) {
     return (
-      <div className='w-[100vw] min-h-[100vh] bg-gradient-to-l from-[#141414] to-[#0c2025] text-[white] flex items-center justify-center'>
+      <div className='flex items-center justify-center h-[60vh]'>
         <Loading />
       </div>
     )
   }
 
   return (
-    <div className='w-[100vw] min-h-[100vh] bg-gradient-to-l from-[#141414] to-[#0c2025] text-[white]'>
-      <Nav />
-      <div className='w-[100%] h-[100%] flex items-center justify-start'>
-        <Sidebar />
+    <div className='max-w-6xl'>
+      {/* Header */}
+      <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6'>
+        <div>
+          <h1 className='text-3xl font-bold text-white'>Inventory Management</h1>
+          <p className='text-white/40 text-sm mt-1'>Showing {filteredList.length} of {list.length} products</p>
+        </div>
+        <div className='flex gap-2'>
+          <button
+            onClick={fetchList}
+            className='flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-all text-sm font-medium cursor-pointer'
+          >
+            <HiOutlineRefresh size={16} />
+            Refresh
+          </button>
+          <button
+            onClick={initializeAllInventory}
+            className='flex items-center gap-2 px-4 py-2 bg-[#0ea5e9]/10 border border-[#0ea5e9]/20 rounded-lg text-[#0ea5e9] hover:bg-[#0ea5e9]/20 transition-all text-sm font-medium cursor-pointer'
+          >
+            Initialize All
+          </button>
+        </div>
+      </div>
 
-        <div className='w-[82%] h-[100%] lg:ml-[320px] md:ml-[230px] mt-[70px] flex flex-col gap-[30px] overflow-x-hidden py-[50px] ml-[100px]'>
-          <div className='flex justify-between items-center w-[90%] mb-[20px]'>
-            <div className='text-[28px] md:text-[40px] text-white'>Inventory Management</div>
-            <div className='flex gap-[10px]'>
-              <button
-                onClick={fetchList}
-                className='bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-[14px]'
-              >
-                🔄 Refresh
-              </button>
-              <button
-                onClick={initializeAllInventory}
-                className='bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-[14px]'
-              >
-                Initialize All Products
-              </button>
-            </div>
-          </div>
+      {/* Filters */}
+      <div className='bg-white/5 border border-white/10 rounded-xl p-4 flex gap-3 flex-wrap mb-6'>
+        <div className='relative flex-1 min-w-[200px]'>
+          <HiOutlineSearch className='absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30' size={18} />
+          <input
+            type="text"
+            placeholder="Search products..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className='w-full h-10 bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 text-white placeholder-white/30 focus:border-[#0ea5e9] focus:outline-none text-sm'
+          />
+        </div>
+        <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}
+          className='h-10 px-4 bg-white/5 border border-white/10 rounded-lg text-white/70 text-sm cursor-pointer appearance-none min-w-[140px]'>
+          <option value="All" className='bg-[#0c2025]'>All Categories</option>
+          <option value="Men" className='bg-[#0c2025]'>Men</option>
+          <option value="Women" className='bg-[#0c2025]'>Women</option>
+          <option value="Kids" className='bg-[#0c2025]'>Kids</option>
+        </select>
+        <select value={stockFilter} onChange={(e) => setStockFilter(e.target.value)}
+          className='h-10 px-4 bg-white/5 border border-white/10 rounded-lg text-white/70 text-sm cursor-pointer appearance-none min-w-[150px]'>
+          <option value="All" className='bg-[#0c2025]'>All Stock Status</option>
+          <option value="In Stock" className='bg-[#0c2025]'>In Stock</option>
+          <option value="Low Stock" className='bg-[#0c2025]'>Low Stock</option>
+          <option value="Out of Stock" className='bg-[#0c2025]'>Out of Stock</option>
+        </select>
+      </div>
 
-          {/* Search and Filter Section */}
-          <div className='w-[90%] flex flex-col gap-[15px] bg-slate-700 p-[20px] rounded-xl'>
-            <div className='flex gap-[15px] flex-wrap'>
-              <input
-                type="text"
-                placeholder="🔍 Search products..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className='flex-1 min-w-[200px] px-4 py-2 bg-slate-600 text-white rounded-lg border-2 border-slate-500 hover:border-[#46d1f7] focus:border-[#46d1f7] focus:outline-none'
-              />
-              <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                className='px-4 py-2 bg-slate-600 text-white rounded-lg border-2 border-slate-500 hover:border-[#46d1f7] cursor-pointer'
-              >
-                <option value="All">All Categories</option>
-                <option value="Men">Men</option>
-                <option value="Women">Women</option>
-                <option value="Kids">Kids</option>
-              </select>
-              <select
-                value={stockFilter}
-                onChange={(e) => setStockFilter(e.target.value)}
-                className='px-4 py-2 bg-slate-600 text-white rounded-lg border-2 border-slate-500 hover:border-[#46d1f7] cursor-pointer'
-              >
-                <option value="All">All Stock Status</option>
-                <option value="In Stock">In Stock</option>
-                <option value="Low Stock">Low Stock</option>
-                <option value="Out of Stock">Out of Stock</option>
-              </select>
-            </div>
-            <div className='text-[14px] text-gray-300'>
-              Showing {filteredList.length} of {list.length} products
-            </div>
-          </div>
+      {/* Products */}
+      <div className='flex flex-col gap-4'>
+        {filteredList?.length > 0 ? (
+          filteredList.map((item, index) => {
+            const status = getStockStatus(item)
+            const badge = getStatusBadge(status)
+            const isEditing = editingProduct === item._id
 
-          {filteredList?.length > 0 ? (
-            filteredList.map((item, index) => (
-              <div
-                className='w-[90%] min-h-[120px] bg-slate-600 rounded-xl flex flex-col p-[20px]'
-                key={index}
-              >
-                <div className='flex items-center justify-between mb-[15px]'>
-                  <div className='flex items-center gap-[20px]'>
-                    <img src={item.image1} className='w-[80px] h-[80px] rounded-lg object-cover' alt="" />
+            return (
+              <div className='bg-white/5 border border-white/10 rounded-xl p-5' key={index}>
+                {/* Product Header */}
+                <div className='flex items-center justify-between mb-4'>
+                  <div className='flex items-center gap-4'>
+                    <img src={item.image1} className='w-16 h-16 rounded-lg object-cover border border-white/10' alt="" />
                     <div>
-                      <div className='text-[20px] text-[#bef0f3] font-semibold'>{item.name}</div>
-                      <div className='text-[14px] text-[#bef3da]'>{item.category} • ₹{item.price}</div>
+                      <h3 className='text-white font-semibold'>{item.name}</h3>
+                      <p className='text-white/40 text-sm'>{item.category} • ₹{item.price}</p>
                     </div>
                   </div>
-                  {editingProduct !== item._id && (
-                    <button
-                      onClick={() => handleEdit(item)}
-                      className='bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg'
-                    >
-                      Edit Inventory
-                    </button>
-                  )}
+                  <div className='flex items-center gap-3'>
+                    <span className={`text-xs px-3 py-1 rounded-full font-medium ${badge.cls}`}>{badge.text}</span>
+                    {!isEditing && (
+                      <button
+                        onClick={() => handleEdit(item)}
+                        className='flex items-center gap-1.5 px-3 py-1.5 bg-[#0ea5e9]/10 border border-[#0ea5e9]/20 text-[#0ea5e9] rounded-lg text-sm hover:bg-[#0ea5e9]/20 transition-all cursor-pointer'
+                      >
+                        <HiOutlinePencil size={14} />
+                        Edit
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Size Inventory Table */}
-                <div className='mt-[10px]'>
-                  <div className='grid grid-cols-4 gap-[10px] text-[14px] font-semibold mb-[10px] text-[#aaf5fa]'>
-                    <div>Size</div>
-                    <div>Stock</div>
-                    <div>Available</div>
-                    <div>Actions</div>
+                <div className='space-y-2'>
+                  <div className='grid grid-cols-4 gap-3 text-xs font-semibold text-white/40 uppercase tracking-wider px-3'>
+                    <span>Size</span>
+                    <span>Stock</span>
+                    <span>Available</span>
+                    <span>Status</span>
                   </div>
-
                   {item.sizes.map((size, sizeIndex) => {
-                    // Handle both Map and plain object formats
                     const inventory = item.inventory || {}
                     const sizeInventory = inventory[size] || { stock: 0, available: true }
-                    const isEditing = editingProduct === item._id
 
                     return (
-                      <div key={sizeIndex} className='grid grid-cols-4 gap-[10px] items-center mb-[8px] bg-slate-700 p-[10px] rounded-lg'>
-                        <div className='text-[16px] font-bold'>{size}</div>
-                        
+                      <div key={sizeIndex} className='grid grid-cols-4 gap-3 items-center bg-white/3 border border-white/5 rounded-lg px-3 py-2.5'>
+                        <span className='text-white font-semibold text-sm'>{size}</span>
                         <div>
                           {isEditing ? (
                             <input
@@ -285,44 +238,38 @@ function Inventory() {
                               min='0'
                               value={inventoryData[size]?.stock || 0}
                               onChange={(e) => handleStockChange(size, e.target.value)}
-                              className='w-[80px] px-2 py-1 bg-slate-800 text-white rounded border border-slate-600'
+                              className='w-20 h-8 px-2 bg-white/5 border border-white/10 rounded text-white text-sm focus:border-[#0ea5e9] focus:outline-none'
                             />
                           ) : (
-                            <span className={`${sizeInventory.stock <= 10 ? 'text-red-400' : 'text-green-400'}`}>
+                            <span className={`text-sm font-medium ${sizeInventory.stock <= 10 ? 'text-red-400' : 'text-green-400'}`}>
                               {sizeInventory.stock}
                             </span>
                           )}
                         </div>
-
                         <div>
                           {isEditing ? (
                             <input
                               type='checkbox'
                               checked={inventoryData[size]?.available || false}
                               onChange={() => handleAvailabilityToggle(size)}
-                              className='w-[20px] h-[20px] cursor-pointer'
+                              className='w-4 h-4 cursor-pointer accent-[#0ea5e9]'
                             />
                           ) : (
-                            <span className={sizeInventory.available ? 'text-green-400' : 'text-red-400'}>
+                            <span className={`text-sm ${sizeInventory.available ? 'text-green-400' : 'text-red-400'}`}>
                               {sizeInventory.available ? '✓ Yes' : '✗ No'}
                             </span>
                           )}
                         </div>
-
                         <div>
                           {!isEditing && (
-                            <span className={`text-[12px] px-2 py-1 rounded ${
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${
                               !sizeInventory.available || sizeInventory.stock === 0
-                                ? 'bg-red-600'
+                                ? 'bg-red-500/20 text-red-400'
                                 : sizeInventory.stock <= 10
-                                ? 'bg-orange-600'
-                                : 'bg-green-600'
+                                ? 'bg-yellow-500/20 text-yellow-400'
+                                : 'bg-green-500/20 text-green-400'
                             }`}>
-                              {!sizeInventory.available || sizeInventory.stock === 0
-                                ? 'Out of Stock'
-                                : sizeInventory.stock <= 10
-                                ? 'Low Stock'
-                                : 'In Stock'}
+                              {!sizeInventory.available || sizeInventory.stock === 0 ? 'Out' : sizeInventory.stock <= 10 ? 'Low' : 'OK'}
                             </span>
                           )}
                         </div>
@@ -331,33 +278,35 @@ function Inventory() {
                   })}
                 </div>
 
-                {/* Save/Cancel Buttons */}
-                {editingProduct === item._id && (
-                  <div className='flex gap-[10px] mt-[15px]'>
+                {/* Save/Cancel */}
+                {isEditing && (
+                  <div className='flex gap-2 mt-4'>
                     <button
                       onClick={() => handleSave(item._id)}
-                      className='bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg'
+                      className='flex items-center gap-1.5 px-5 py-2 bg-[#0ea5e9] hover:bg-[#0ea5e9]/80 text-white rounded-lg text-sm font-medium transition-all cursor-pointer'
                     >
+                      <HiOutlineCheck size={16} />
                       Save Changes
                     </button>
                     <button
                       onClick={handleCancel}
-                      className='bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg'
+                      className='flex items-center gap-1.5 px-5 py-2 bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 rounded-lg text-sm font-medium transition-all cursor-pointer'
                     >
+                      <HiOutlineX size={16} />
                       Cancel
                     </button>
                   </div>
                 )}
               </div>
-            ))
-          ) : (
-            <div className='text-white text-lg bg-slate-600 p-8 rounded-xl text-center w-[90%]'>
-              {searchTerm || categoryFilter !== 'All' || stockFilter !== 'All' 
-                ? '🔍 No products found matching your filters.'
-                : '📦 No products available.'}
-            </div>
-          )}
-        </div>
+            )
+          })
+        ) : (
+          <div className='bg-white/5 border border-white/10 p-12 rounded-xl text-center text-white/40 text-sm'>
+            {searchTerm || categoryFilter !== 'All' || stockFilter !== 'All'
+              ? 'No products found matching your filters.'
+              : 'No products available.'}
+          </div>
+        )}
       </div>
     </div>
   )

@@ -1,1 +1,85 @@
 @import "tailwindcss";
+
+@layer base {
+    :root {
+        --background: 195 41% 10%;
+        --foreground: 210 40% 98%;
+        --primary: 199.99 89.4% 48.42%;
+        --primary-foreground: 210 40% 98%;
+        --muted: 217.2 32.6% 17.5%;
+        --muted-foreground: 215 20.2% 65.1%;
+        --border: 0 0% 20%;
+        --radius: 0.5rem;
+    }
+
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    html {
+        scroll-behavior: smooth;
+    }
+
+    body {
+        background-color: #0c2025;
+        color: #f8fafc;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #ffffff20;
+        border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #ffffff40;
+    }
+
+    /* Selection color */
+    ::selection {
+        background: #0ea5e950;
+        color: white;
+    }
+}
+
+/* Scrollbar hide utility */
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* Toast customization */
+.Toastify__toast-container {
+    z-index: 99999 !important;
+}
+
+.Toastify__toast {
+    background: #1a2e35 !important;
+    color: #f8fafc !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 0.75rem !important;
+    backdrop-filter: blur(12px) !important;
+}
+
+.Toastify__close-button {
+    color: #f8fafc !important;
+}
+
+.Toastify__progress-bar {
+    background: #0ea5e9 !important;
+}

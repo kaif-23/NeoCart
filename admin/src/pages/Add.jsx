@@ -1,80 +1,43 @@
-import React, { useContext } from 'react'
-import Nav from '../component/Nav'
-import Sidebar from '../component/Sidebar'
+import React, { useContext, useState } from 'react'
 import upload from '../assets/upload image.jpg'
-import { useState } from 'react'
 import { authDataContext } from '../context/AuthContext'
 import axios from 'axios'
 import { toast } from 'react-toastify'
 import Loading from '../component/Loading'
 import { useLocation, useNavigate } from 'react-router-dom'
-import {
-  TextField,
-  Button,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Checkbox,
-  FormControlLabel,
-  Card,
-  CardContent,
-  Typography,
-  Box,
-  Grid,
-  Chip,
-  Paper,
-  IconButton,
-  Divider,
-  InputAdornment
-} from '@mui/material'
-import {
-  CloudUpload,
-  Add as AddIcon,
-  Save,
-  Cancel,
-  Image as ImageIcon,
-  Category,
-  Inventory,
-  MonetizationOn,
-  Description
-} from '@mui/icons-material'
+import { HiOutlineCloudUpload, HiOutlineSave, HiOutlineX } from 'react-icons/hi'
+import { HiOutlinePlus } from 'react-icons/hi2'
 
 function Add() {
   let location = useLocation()
   let navigate = useNavigate()
   let { editMode, productData } = location.state || {}
 
-  let [image1,setImage1] = useState(false)
-  let [image2,setImage2] = useState(false)
-  let [image3,setImage3] = useState(false)
-  let [image4,setImage4] = useState(false)
+  let [image1, setImage1] = useState(false)
+  let [image2, setImage2] = useState(false)
+  let [image3, setImage3] = useState(false)
+  let [image4, setImage4] = useState(false)
   const [name, setName] = useState(editMode && productData ? productData.name || "" : "")
   const [description, setDescription] = useState(editMode && productData ? productData.description || "" : "")
   const [category, setCategory] = useState(editMode && productData ? productData.category || "Men" : "Men")
   const [price, setPrice] = useState(editMode && productData ? productData.price || "" : "")
   const [subCategory, setSubCategory] = useState(editMode && productData ? productData.subCategory || "TopWear" : "TopWear")
   const [bestseller, setBestSeller] = useState(editMode && productData ? productData.bestseller || false : false)
-  const [sizes,setSizes] = useState(editMode && productData ? productData.sizes || [] : [])
+  const [sizes, setSizes] = useState(editMode && productData ? productData.sizes || [] : [])
   const [inventory, setInventory] = useState(editMode && productData && productData.inventory ? productData.inventory : {})
-  const [loading,setLoading] = useState(false)
-  let {serverUrl} = useContext(authDataContext)
+  const [loading, setLoading] = useState(false)
+  let { serverUrl } = useContext(authDataContext)
 
-  // Update inventory when sizes change
   const handleSizeToggle = (size) => {
     if (sizes.includes(size)) {
-      // Remove size
       setSizes(prev => prev.filter(item => item !== size))
-      // Remove from inventory
       setInventory(prev => {
-        const newInv = {...prev}
+        const newInv = { ...prev }
         delete newInv[size]
         return newInv
       })
     } else {
-      // Add size
       setSizes(prev => [...prev, size])
-      // Add to inventory with default values
       setInventory(prev => ({
         ...prev,
         [size]: prev[size] || { stock: 100, available: true }
@@ -97,38 +60,34 @@ function Add() {
     e.preventDefault()
     try {
       let formData = new FormData()
-      formData.append("name",name)
-      formData.append("description",description)
-      formData.append("price",price)
-      formData.append("category",category)
-      formData.append("subCategory",subCategory)
-      formData.append("bestseller",bestseller)
-      formData.append("sizes",JSON.stringify(sizes))
-      formData.append("inventory",JSON.stringify(inventory))
+      formData.append("name", name)
+      formData.append("description", description)
+      formData.append("price", price)
+      formData.append("category", category)
+      formData.append("subCategory", subCategory)
+      formData.append("bestseller", bestseller)
+      formData.append("sizes", JSON.stringify(sizes))
+      formData.append("inventory", JSON.stringify(inventory))
 
-      // Handle images - only append new images if selected
-      if (image1) formData.append("image1",image1)
-      if (image2) formData.append("image2",image2)
-      if (image3) formData.append("image3",image3)
-      if (image4) formData.append("image4",image4)
+      if (image1) formData.append("image1", image1)
+      if (image2) formData.append("image2", image2)
+      if (image3) formData.append("image3", image3)
+      if (image4) formData.append("image4", image4)
 
       let result
 
       if (editMode && productData) {
-        // Update existing product
         formData.append("productId", productData._id)
-        result = await axios.put(serverUrl + "/api/product/update/" + productData._id, formData, {withCredentials:true})
+        result = await axios.put(serverUrl + "/api/product/update/" + productData._id, formData, { withCredentials: true })
         toast.success("Product Updated Successfully")
       } else {
-        // Add new product
-        result = await axios.post(serverUrl + "/api/product/addproduct", formData, {withCredentials:true})
+        result = await axios.post(serverUrl + "/api/product/addproduct", formData, { withCredentials: true })
         toast.success("Product Added Successfully")
       }
 
       setLoading(false)
 
-      if(result.data){
-        // Reset form
+      if (result.data) {
         setName("")
         setDescription("")
         setImage1(false)
@@ -141,404 +100,240 @@ function Add() {
         setSubCategory("TopWear")
         setSizes([])
         setInventory({})
-        
-        // Navigate back to lists after editing
+
         if (editMode) {
           navigate('/lists')
         }
       }
-
-      
     } catch (error) {
-       setLoading(false)
-       toast.error(editMode ? "Update Product Failed" : "Add Product Failed")
+      setLoading(false)
+      toast.error(editMode ? "Update Product Failed" : "Add Product Failed")
     }
-
-    
   }
+
+  const imageStates = [
+    { state: image1, setter: setImage1, existing: editMode && productData?.image1 },
+    { state: image2, setter: setImage2, existing: editMode && productData?.image2 },
+    { state: image3, setter: setImage3, existing: editMode && productData?.image3 },
+    { state: image4, setter: setImage4, existing: editMode && productData?.image4 },
+  ]
+
   return (
-    <div className='w-full min-h-screen bg-gradient-to-l from-[#141414] to-[#0c2025] text-white overflow-x-hidden'>
-      <Nav/>
-      <Sidebar/>
+    <div className='max-w-4xl'>
+      {/* Header */}
+      <div className='mb-8'>
+        <h1 className='text-3xl font-bold text-white'>
+          {editMode ? 'Edit Product' : 'Add New Product'}
+        </h1>
+        <p className='text-white/40 text-sm mt-1'>
+          {editMode ? 'Update product information' : 'Fill in the details to add a new product to your store'}
+        </p>
+      </div>
 
-      <Box sx={{ 
-        width: '82%', 
-        marginLeft: 'auto', 
-        marginTop: '70px',
-        padding: { xs: 2, md: 4 },
-        paddingTop: { xs: 4, md: 6 }
-      }}>
-        <Paper 
-          elevation={6}
-          sx={{ 
-            maxWidth: 1200, 
-            margin: '0 auto',
-            backgroundColor: 'rgba(30, 30, 30, 0.95)',
-            borderRadius: 3,
-            overflow: 'hidden'
-          }}
-        >
-          <Box sx={{ 
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            padding: 3,
-            color: 'white'
-          }}>
-            <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
-              {editMode ? '✏️ Edit Product' : <AddIcon />}
-              {editMode ? 'Edit Product' : 'Add New Product'}
-            </Typography>
-            <Typography variant="body2" sx={{ mt: 1, opacity: 0.9 }}>
-              {editMode ? 'Update product information' : 'Fill in the details to add a new product'}
-            </Typography>
-          </Box>
-
-          <form onSubmit={handleAddProduct}>
-            <CardContent sx={{ padding: { xs: 2, md: 4 } }}>
-              
-              {/* Image Upload Section */}
-              <Box sx={{ mb: 4 }}>
-                <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1, color: '#667eea' }}>
-                  <ImageIcon /> Product Images
-                  {editMode && <Typography variant="caption" sx={{ color: 'gray', ml: 1 }}>(Leave blank to keep existing)</Typography>}
-                </Typography>
-                <Grid container spacing={2}>
-                  {[1, 2, 3, 4].map((num) => {
-                    const imageState = eval(`image${num}`)
-                    const setImageState = eval(`setImage${num}`)
-                    const existingImage = editMode && productData?.[`image${num}`]
-                    
-                    return (
-                      <Grid item xs={6} sm={3} key={num}>
-                        <label htmlFor={`image${num}`}>
-                          <Paper
-                            elevation={3}
-                            sx={{
-                              aspectRatio: '1',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              cursor: 'pointer',
-                              overflow: 'hidden',
-                              transition: 'transform 0.2s',
-                              '&:hover': { transform: 'scale(1.05)', borderColor: '#667eea' },
-                              border: '2px dashed #667eea',
-                              backgroundColor: 'rgba(102, 126, 234, 0.1)'
-                            }}
-                          >
-                            {imageState || existingImage ? (
-                              <img
-                                src={imageState ? URL.createObjectURL(imageState) : existingImage}
-                                alt={`Product ${num}`}
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                              />
-                            ) : (
-                              <Box sx={{ textAlign: 'center', color: '#667eea' }}>
-                                <CloudUpload sx={{ fontSize: 40, mb: 1 }} />
-                                <Typography variant="caption">Upload Image {num}</Typography>
-                              </Box>
-                            )}
-                          </Paper>
-                          <input
-                            type="file"
-                            id={`image${num}`}
-                            hidden
-                            onChange={(e) => setImageState(e.target.files[0])}
-                            {...(!editMode && {required: true})}
-                          />
-                        </label>
-                      </Grid>
-                    )
-                  })}
-                </Grid>
-              </Box>
-
-              <Divider sx={{ my: 4, borderColor: 'rgba(255,255,255,0.1)' }} />
-
-              {/* Product Name */}
-              <TextField
-                fullWidth
-                label="Product Name"
-                variant="outlined"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                sx={{ 
-                  mb: 3,
-                  '& .MuiOutlinedInput-root': {
-                    color: 'white',
-                    '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' },
-                    '&:hover fieldset': { borderColor: '#667eea' },
-                    '&.Mui-focused fieldset': { borderColor: '#667eea' }
-                  },
-                  '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
-                  '& .MuiInputLabel-root.Mui-focused': { color: '#667eea' }
-                }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Category sx={{ color: '#667eea' }} />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-
-              {/* Product Description */}
-              <TextField
-                fullWidth
-                label="Product Description"
-                variant="outlined"
-                multiline
-                rows={4}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                required
-                sx={{ 
-                  mb: 3,
-                  '& .MuiOutlinedInput-root': {
-                    color: 'white',
-                    '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' },
-                    '&:hover fieldset': { borderColor: '#667eea' },
-                    '&.Mui-focused fieldset': { borderColor: '#667eea' }
-                  },
-                  '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
-                  '& .MuiInputLabel-root.Mui-focused': { color: '#667eea' }
-                }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Description sx={{ color: '#667eea' }} />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-
-              {/* Category and Sub-Category */}
-              <Grid container spacing={3} sx={{ mb: 3 }}>
-                <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth variant="outlined">
-                    <InputLabel sx={{ color: 'rgba(255,255,255,0.7)', '&.Mui-focused': { color: '#667eea' } }}>
-                      Category
-                    </InputLabel>
-                    <Select
-                      value={category}
-                      onChange={(e) => setCategory(e.target.value)}
-                      label="Category"
-                      sx={{
-                        color: 'white',
-                        '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.3)' },
-                        '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#667eea' },
-                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#667eea' },
-                        '& .MuiSvgIcon-root': { color: 'white' }
-                      }}
-                    >
-                      <MenuItem value="Men">Men</MenuItem>
-                      <MenuItem value="Women">Women</MenuItem>
-                      <MenuItem value="Kids">Kids</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth variant="outlined">
-                    <InputLabel sx={{ color: 'rgba(255,255,255,0.7)', '&.Mui-focused': { color: '#667eea' } }}>
-                      Sub-Category
-                    </InputLabel>
-                    <Select
-                      value={subCategory}
-                      onChange={(e) => setSubCategory(e.target.value)}
-                      label="Sub-Category"
-                      sx={{
-                        color: 'white',
-                        '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.3)' },
-                        '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#667eea' },
-                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#667eea' },
-                        '& .MuiSvgIcon-root': { color: 'white' }
-                      }}
-                    >
-                      <MenuItem value="TopWear">TopWear</MenuItem>
-                      <MenuItem value="BottomWear">BottomWear</MenuItem>
-                      <MenuItem value="WinterWear">WinterWear</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-              </Grid>
-
-              {/* Product Price */}
-              <TextField
-                fullWidth
-                label="Product Price"
-                variant="outlined"
-                type="number"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                required
-                sx={{ 
-                  mb: 3,
-                  '& .MuiOutlinedInput-root': {
-                    color: 'white',
-                    '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' },
-                    '&:hover fieldset': { borderColor: '#667eea' },
-                    '&.Mui-focused fieldset': { borderColor: '#667eea' }
-                  },
-                  '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
-                  '& .MuiInputLabel-root.Mui-focused': { color: '#667eea' }
-                }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <MonetizationOn sx={{ color: '#667eea' }} />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-
-              {/* Product Sizes */}
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="h6" sx={{ mb: 2, color: '#667eea' }}>
-                  Product Sizes
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                  {['S', 'M', 'L', 'XL', 'XXL'].map((size) => (
-                    <Chip
-                      key={size}
-                      label={size}
-                      onClick={() => handleSizeToggle(size)}
-                      color={sizes.includes(size) ? 'primary' : 'default'}
-                      sx={{
-                        fontSize: '16px',
-                        padding: '20px 10px',
-                        backgroundColor: sizes.includes(size) ? '#667eea' : 'rgba(255,255,255,0.1)',
-                        color: 'white',
-                        border: sizes.includes(size) ? '2px solid #667eea' : '2px solid rgba(255,255,255,0.3)',
-                        '&:hover': { backgroundColor: sizes.includes(size) ? '#5568d3' : 'rgba(255,255,255,0.2)' }
-                      }}
+      <form onSubmit={handleAddProduct} className='space-y-6'>
+        {/* Image Upload Section */}
+        <div className='bg-white/5 border border-white/10 rounded-xl p-6'>
+          <h3 className='text-[#0ea5e9] font-semibold text-sm mb-4 uppercase tracking-wider'>
+            Product Images
+            {editMode && <span className='text-white/30 normal-case tracking-normal ml-2'>(Leave blank to keep existing)</span>}
+          </h3>
+          <div className='grid grid-cols-2 sm:grid-cols-4 gap-4'>
+            {imageStates.map((img, idx) => (
+              <label key={idx} htmlFor={`image${idx + 1}`} className='cursor-pointer group'>
+                <div className='aspect-square rounded-xl border-2 border-dashed border-white/15 hover:border-[#0ea5e9]/40 bg-white/3 flex items-center justify-center overflow-hidden transition-all group-hover:bg-white/5'>
+                  {img.state || img.existing ? (
+                    <img
+                      src={img.state ? URL.createObjectURL(img.state) : img.existing}
+                      alt={`Product ${idx + 1}`}
+                      className='w-full h-full object-cover rounded-lg'
                     />
-                  ))}
-                </Box>
-              </Box>
+                  ) : (
+                    <div className='text-center text-white/30'>
+                      <HiOutlineCloudUpload className='mx-auto mb-1' size={28} />
+                      <p className='text-xs'>Image {idx + 1}</p>
+                    </div>
+                  )}
+                </div>
+                <input
+                  type="file"
+                  id={`image${idx + 1}`}
+                  hidden
+                  onChange={(e) => img.setter(e.target.files[0])}
+                  {...(!editMode && { required: true })}
+                />
+              </label>
+            ))}
+          </div>
+        </div>
 
-              {/* Stock Management */}
-              {sizes.length > 0 && (
-                <Card sx={{ mb: 3, backgroundColor: 'rgba(102, 126, 234, 0.1)', border: '1px solid rgba(102, 126, 234, 0.3)' }}>
-                  <CardContent>
-                    <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1, color: '#667eea' }}>
-                      <Inventory /> Stock Management
-                    </Typography>
-                    <Grid container spacing={2}>
-                      {sizes.map(size => (
-                        <Grid item xs={12} sm={6} key={size}>
-                          <Card sx={{ backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                            <CardContent>
-                              <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 'bold', color: 'white' }}>
-                                Size: {size}
-                              </Typography>
-                              <TextField
-                                fullWidth
-                                label="Stock Quantity"
-                                type="number"
-                                size="small"
-                                value={inventory[size]?.stock || 0}
-                                onChange={(e) => handleInventoryChange(size, 'stock', e.target.value)}
-                                sx={{ 
-                                  mb: 2,
-                                  '& .MuiOutlinedInput-root': {
-                                    color: 'white',
-                                    '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' },
-                                    '&:hover fieldset': { borderColor: '#667eea' }
-                                  },
-                                  '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' }
-                                }}
-                              />
-                              <FormControlLabel
-                                control={
-                                  <Checkbox
-                                    checked={inventory[size]?.available !== false}
-                                    onChange={(e) => handleInventoryChange(size, 'available', e.target.checked.toString())}
-                                    sx={{ color: 'rgba(255,255,255,0.7)', '&.Mui-checked': { color: '#667eea' } }}
-                                  />
-                                }
-                                label="Available for sale"
-                                sx={{ color: 'white' }}
-                              />
-                            </CardContent>
-                          </Card>
-                        </Grid>
-                      ))}
-                    </Grid>
-                  </CardContent>
-                </Card>
-              )}
+        {/* Product Details */}
+        <div className='bg-white/5 border border-white/10 rounded-xl p-6 space-y-5'>
+          <h3 className='text-[#0ea5e9] font-semibold text-sm uppercase tracking-wider mb-1'>Product Details</h3>
 
-              {/* Bestseller Checkbox */}
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={bestseller}
-                    onChange={() => setBestSeller(prev => !prev)}
-                    sx={{ 
-                      color: 'rgba(255,255,255,0.7)',
-                      '&.Mui-checked': { color: '#FFD700' }
-                    }}
-                  />
-                }
-                label={
-                  <Typography sx={{ fontSize: '18px', fontWeight: 'bold', color: 'white' }}>
-                    ⭐ {editMode ? 'Bestseller' : 'Add to Bestseller'}
-                  </Typography>
-                }
-                sx={{ mb: 3 }}
-              />
+          {/* Name */}
+          <div>
+            <label className='text-white/50 text-xs font-medium uppercase tracking-wider mb-2 block'>Product Name</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              placeholder='Enter product name'
+              className='w-full h-11 bg-white/5 border border-white/10 rounded-lg px-4 text-white placeholder-white/30 focus:border-[#0ea5e9] focus:outline-none focus:ring-1 focus:ring-[#0ea5e9]/50 transition-all text-sm'
+            />
+          </div>
 
-              <Divider sx={{ my: 3, borderColor: 'rgba(255,255,255,0.1)' }} />
+          {/* Description */}
+          <div>
+            <label className='text-white/50 text-xs font-medium uppercase tracking-wider mb-2 block'>Description</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              required
+              rows={4}
+              placeholder='Enter product description'
+              className='w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-white/30 focus:border-[#0ea5e9] focus:outline-none focus:ring-1 focus:ring-[#0ea5e9]/50 transition-all text-sm resize-none'
+            />
+          </div>
 
-              {/* Action Buttons */}
-              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  size="large"
-                  startIcon={loading ? null : (editMode ? <Save /> : <AddIcon />)}
-                  disabled={loading}
-                  sx={{
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    color: 'white',
-                    fontWeight: 'bold',
-                    padding: '12px 32px',
-                    '&:hover': {
-                      background: 'linear-gradient(135deg, #5568d3 0%, #653a8a 100%)',
-                    },
-                    '&:disabled': {
-                      background: 'rgba(255,255,255,0.3)',
-                    }
-                  }}
-                >
-                  {loading ? <Loading /> : (editMode ? 'Update Product' : 'Add Product')}
-                </Button>
+          {/* Category & Sub-Category */}
+          <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+            <div>
+              <label className='text-white/50 text-xs font-medium uppercase tracking-wider mb-2 block'>Category</label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className='w-full h-11 bg-white/5 border border-white/10 rounded-lg px-4 text-white/70 focus:border-[#0ea5e9] focus:outline-none cursor-pointer text-sm appearance-none'
+              >
+                <option value="Men" className='bg-[#0c2025]'>Men</option>
+                <option value="Women" className='bg-[#0c2025]'>Women</option>
+                <option value="Kids" className='bg-[#0c2025]'>Kids</option>
+              </select>
+            </div>
+            <div>
+              <label className='text-white/50 text-xs font-medium uppercase tracking-wider mb-2 block'>Sub-Category</label>
+              <select
+                value={subCategory}
+                onChange={(e) => setSubCategory(e.target.value)}
+                className='w-full h-11 bg-white/5 border border-white/10 rounded-lg px-4 text-white/70 focus:border-[#0ea5e9] focus:outline-none cursor-pointer text-sm appearance-none'
+              >
+                <option value="TopWear" className='bg-[#0c2025]'>TopWear</option>
+                <option value="BottomWear" className='bg-[#0c2025]'>BottomWear</option>
+                <option value="WinterWear" className='bg-[#0c2025]'>WinterWear</option>
+              </select>
+            </div>
+          </div>
 
-                {editMode && (
-                  <Button
-                    variant="outlined"
-                    size="large"
-                    startIcon={<Cancel />}
-                    onClick={() => navigate('/lists')}
-                    sx={{
-                      color: 'white',
-                      borderColor: 'rgba(255,255,255,0.3)',
-                      fontWeight: 'bold',
-                      padding: '12px 32px',
-                      '&:hover': {
-                        borderColor: '#667eea',
-                        backgroundColor: 'rgba(102, 126, 234, 0.1)'
-                      }
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                )}
-              </Box>
-            </CardContent>
-          </form>
-        </Paper>
-      </Box>
+          {/* Price */}
+          <div>
+            <label className='text-white/50 text-xs font-medium uppercase tracking-wider mb-2 block'>Price (₹)</label>
+            <input
+              type="number"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              required
+              placeholder='0'
+              className='w-full h-11 bg-white/5 border border-white/10 rounded-lg px-4 text-white placeholder-white/30 focus:border-[#0ea5e9] focus:outline-none focus:ring-1 focus:ring-[#0ea5e9]/50 transition-all text-sm'
+            />
+          </div>
+        </div>
+
+        {/* Sizes */}
+        <div className='bg-white/5 border border-white/10 rounded-xl p-6'>
+          <h3 className='text-[#0ea5e9] font-semibold text-sm uppercase tracking-wider mb-4'>Product Sizes</h3>
+          <div className='flex gap-2 flex-wrap'>
+            {['S', 'M', 'L', 'XL', 'XXL'].map((size) => (
+              <button
+                key={size}
+                type='button'
+                onClick={() => handleSizeToggle(size)}
+                className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${
+                  sizes.includes(size)
+                    ? 'bg-[#0ea5e9]/20 text-[#0ea5e9] border border-[#0ea5e9]/40'
+                    : 'bg-white/5 text-white/50 border border-white/10 hover:border-white/20'
+                }`}
+              >
+                {size}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Stock Management */}
+        {sizes.length > 0 && (
+          <div className='bg-white/5 border border-white/10 rounded-xl p-6'>
+            <h3 className='text-[#0ea5e9] font-semibold text-sm uppercase tracking-wider mb-4'>Stock Management</h3>
+            <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+              {sizes.map(size => (
+                <div key={size} className='bg-white/5 border border-white/10 rounded-lg p-4'>
+                  <p className='text-white font-semibold text-sm mb-3'>Size: {size}</p>
+                  <div className='space-y-3'>
+                    <div>
+                      <label className='text-white/40 text-xs mb-1 block'>Stock Quantity</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={inventory[size]?.stock || 0}
+                        onChange={(e) => handleInventoryChange(size, 'stock', e.target.value)}
+                        className='w-full h-9 bg-white/5 border border-white/10 rounded-lg px-3 text-white text-sm focus:border-[#0ea5e9] focus:outline-none'
+                      />
+                    </div>
+                    <label className='flex items-center gap-2 cursor-pointer'>
+                      <input
+                        type="checkbox"
+                        checked={inventory[size]?.available !== false}
+                        onChange={(e) => handleInventoryChange(size, 'available', e.target.checked.toString())}
+                        className='w-4 h-4 rounded accent-[#0ea5e9]'
+                      />
+                      <span className='text-white/60 text-sm'>Available for sale</span>
+                    </label>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Bestseller */}
+        <div className='bg-white/5 border border-white/10 rounded-xl p-6'>
+          <label className='flex items-center gap-3 cursor-pointer'>
+            <input
+              type="checkbox"
+              checked={bestseller}
+              onChange={() => setBestSeller(prev => !prev)}
+              className='w-5 h-5 rounded accent-[#0ea5e9]'
+            />
+            <span className='text-white font-medium'>⭐ {editMode ? 'Bestseller' : 'Add to Bestseller'}</span>
+          </label>
+        </div>
+
+        {/* Action Buttons */}
+        <div className='flex gap-3 flex-wrap pt-2'>
+          <button
+            type="submit"
+            disabled={loading}
+            className='flex items-center gap-2 px-8 py-3 bg-[#0ea5e9] hover:bg-[#0ea5e9]/80 disabled:bg-[#0ea5e9]/40 text-white rounded-lg font-semibold text-sm transition-all cursor-pointer'
+          >
+            {loading ? <Loading /> : (
+              <>
+                {editMode ? <HiOutlineSave size={18} /> : <HiOutlinePlus size={18} />}
+                {editMode ? 'Update Product' : 'Add Product'}
+              </>
+            )}
+          </button>
+
+          {editMode && (
+            <button
+              type="button"
+              onClick={() => navigate('/lists')}
+              className='flex items-center gap-2 px-8 py-3 bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 rounded-lg font-semibold text-sm transition-all cursor-pointer'
+            >
+              <HiOutlineX size={18} />
+              Cancel
+            </button>
+          )}
+        </div>
+      </form>
     </div>
   )
 }

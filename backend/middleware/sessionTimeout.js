@@ -8,7 +8,9 @@ const REFRESH_THRESHOLD = 30 * 60 * 1000; // Refresh if less than 30 min remaini
 
 export const sessionTimeout = async (req, res, next) => {
     try {
-        const { token } = req.cookies;
+        // Check both frontend and admin tokens
+        const token = req.cookies.token || req.cookies.adminToken;
+        const cookieName = req.cookies.adminToken ? 'adminToken' : 'token';
 
         if (!token) {
             return next(); // No token, let other middleware handle
@@ -48,10 +50,10 @@ export const sessionTimeout = async (req, res, next) => {
                 if (user) {
                     // Issue new token
                     const newToken = await genToken(user._id);
-                    res.cookie("token", newToken, {
+                    res.cookie(cookieName, newToken, {
                         httpOnly: true,
                         secure: process.env.NODE_ENV === 'production',
-                        sameSite: "strict",
+                        sameSite: process.env.NODE_ENV === 'production' ? "none" : "lax",
                         maxAge: SESSION_TIMEOUT
                     });
 
@@ -60,7 +62,7 @@ export const sessionTimeout = async (req, res, next) => {
                 }
             } catch (err) {
                 // Token invalid, clear it
-                res.clearCookie('token');
+                res.clearCookie(cookieName);
             }
         }
 

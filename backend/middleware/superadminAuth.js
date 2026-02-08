@@ -3,7 +3,7 @@ import User from '../model/userModel.js'
 
 const superadminAuth = async (req, res, next) => {
     try {
-        let { token } = req.cookies
+        let token = req.cookies.adminToken
 
         if (!token) {
             return res.status(401).json({ message: "Not authorized. Please login as superadmin." })

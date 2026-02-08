@@ -1,7 +1,7 @@
 import React, { useContext, useMemo } from 'react'
-import { shopDataContext } from '../context/ShopContext'
+import { shopDataContext } from '@/context/ShopContext'
 import { useNavigate } from 'react-router-dom'
-import { authDataContext } from '../context/AuthContext'
+import { authDataContext } from '@/context/AuthContext'
 
 function SearchDropdown({ onClose, searchQuery }) {
     const { searchResults, searchLoading, currency } = useContext(shopDataContext)

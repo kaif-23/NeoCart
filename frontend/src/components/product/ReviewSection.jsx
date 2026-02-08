@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useContext, useCallback } from 'react'
 import { FaStar } from "react-icons/fa"
 import axios from 'axios'
-import { toast } from 'react-toastify'
-import { authDataContext } from '../context/AuthContext'
-import { userDataContext } from '../context/UserContext'
-import Loading from './Loading'
+import { toast } from 'sonner'
+import { authDataContext } from '@/context/AuthContext'
+import { userDataContext } from '@/context/UserContext'
+import Loading from '@/components/common/Loading'
 
 function ReviewSection({ productId }) {
     const { serverUrl } = useContext(authDataContext)

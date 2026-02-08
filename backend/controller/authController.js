@@ -144,7 +144,7 @@ export const adminLogin = async (req, res) => {
 
         // Generate token with 8 hour expiry
         let token = await genToken(user._id)
-        res.cookie("token", token, {
+        res.cookie("adminToken", token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: process.env.NODE_ENV === 'production' ? "none" : "lax",
@@ -163,6 +163,20 @@ export const adminLogin = async (req, res) => {
 
     } catch (error) {
         return res.status(500).json({ message: `Login error: ${error.message}` })
+    }
+}
+
+// Admin logout - clears adminToken cookie
+export const adminLogOut = async (req, res) => {
+    try {
+        res.clearCookie("adminToken", {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: process.env.NODE_ENV === 'production' ? "none" : "lax"
+        })
+        return res.status(200).json({ message: "Admin logout successful" })
+    } catch (error) {
+        return res.status(500).json({ message: `Admin logout error: ${error.message}` })
     }
 }
 

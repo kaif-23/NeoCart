@@ -1,9 +1,9 @@
 import React, { useContext, useState } from 'react'
-import ai from "../assets/ai.png"
-import { shopDataContext } from '../context/ShopContext'
+import ai from "@/assets/ai.png"
+import { shopDataContext } from '@/context/ShopContext'
 import { useNavigate } from 'react-router-dom'
-import { toast } from 'react-toastify'
-import open from "../assets/open.mp3"
+import { toast } from 'sonner'
+import open from "@/assets/open.mp3"
 function Ai() {
   let {showSearch , setShowSearch} = useContext(shopDataContext)
   let navigate = useNavigate()

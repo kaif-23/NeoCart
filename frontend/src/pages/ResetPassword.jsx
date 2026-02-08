@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { authDataContext } from '../context/AuthContext';
 import axios from 'axios';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 
 const ResetPassword = () => {
   const { token } = useParams();

@@ -9,10 +9,10 @@ import { useContext } from 'react';
 import { authDataContext } from '../context/AuthContext';
 import axios from 'axios'
 import { signInWithPopup } from 'firebase/auth';
-import { auth, provider } from '../../utils/Firebase';
+import { auth, provider } from '@/utils/Firebase';
 import { userDataContext } from '../context/UserContext';
-import { toast } from 'react-toastify';
-import Loading from '../component/Loading';
+import { toast } from 'sonner';
+import Loading from '@/components/common/Loading';
 
 function Registration() {
     let [show,setShow] = useState(false)
@@ -65,34 +65,53 @@ function Registration() {
     }
   
   return (
-    <div className='w-[100vw] h-[100vh] bg-gradient-to-l from-[#141414] to-[#0c2025] text-[white] flex flex-col items-center justify-start'>
-    <div className='w-[100%] h-[80px] flex items-center justify-start px-[30px] gap-[10px] cursor-pointer' onClick={()=>navigate("/")}>
-    <img className='w-[40px]' src={Logo} alt="" />
-    <h1 className='text-[22px] font-sans '>NeoCart</h1>
+    <div className='w-full min-h-screen bg-gradient-to-l from-[#141414] to-[#0c2025] text-white flex flex-col items-center justify-start'>
+    <div className='w-full h-[80px] flex items-center justify-start px-8 gap-3 cursor-pointer' onClick={()=>navigate("/")}>
+        <img className='w-[38px]' src={Logo} alt="" />
+        <h1 className='text-[22px] font-bold tracking-tight'>NeoCart</h1>
     </div>
 
-    <div className='w-[100%] h-[100px] flex items-center justify-center flex-col gap-[10px]'>
-        <span className='text-[25px] font-semibold'>Registration Page</span>
-        <span className='text-[16px]'>Welcome to NeoCart, Place your order</span>
-
+    <div className='w-full flex items-center justify-center flex-col gap-2 mb-8'>
+        <span className='text-[28px] font-bold'>Create Account</span>
+        <span className='text-[15px] text-gray-400'>Join NeoCart for the best shopping experience</span>
     </div>
-    <div className='max-w-[600px] w-[90%] h-[500px] bg-[#00000025] border-[1px] border-[#96969635] backdrop:blur-2xl rounded-lg shadow-lg flex items-center justify-center '>
-        <form action="" onSubmit={handleSignup} className='w-[90%] h-[90%] flex flex-col items-center justify-start gap-[20px]'>
-            <div className='w-[90%] h-[50px] bg-[#42656cae] rounded-lg flex items-center justify-center gap-[10px] py-[20px] cursor-pointer' onClick={googleSignup} >
-                <img src={google}  alt="" className='w-[20px]'/> Registration with Google
+
+    <div className='max-w-[480px] w-[90%] bg-[#ffffff08] backdrop-blur-md border border-[#80808030] rounded-2xl shadow-2xl shadow-black/30 p-8 mb-10'>
+        <form onSubmit={handleSignup} className='flex flex-col gap-5'>
+            <div className='w-full h-[50px] bg-[#ffffff08] hover:bg-[#ffffff12] border border-[#80808030] rounded-xl flex items-center justify-center gap-3 cursor-pointer transition-colors' onClick={googleSignup}>
+                <img src={google} alt="" className='w-[20px]'/> 
+                <span className='text-[15px] text-gray-300'>Continue with Google</span>
             </div>
-            <div className='w-[100%] h-[20px] flex items-center justify-center gap-[10px]'>
-             <div className='w-[40%] h-[1px] bg-[#96969635]'></div> OR <div className='w-[40%] h-[1px] bg-[#96969635]'></div>
+
+            <div className='flex items-center gap-4'>
+                <div className='flex-1 h-[1px] bg-[#80808030]'></div>
+                <span className='text-gray-500 text-[13px]'>OR</span>
+                <div className='flex-1 h-[1px] bg-[#80808030]'></div>
             </div>
-            <div className='w-[90%] h-[400px] flex flex-col items-center justify-center gap-[15px]  relative'>
-                <input type="text" className='w-[100%] h-[50px] border-[2px] border-[#96969635] backdrop:blur-sm rounded-lg shadow-lg bg-transparent placeholder-[#ffffffc7] px-[20px] font-semibold' placeholder='UserName' required onChange={(e)=>setName(e.target.value)} value={name}/>
-                 <input type="text" className='w-[100%] h-[50px] border-[2px] border-[#96969635] backdrop:blur-sm rounded-lg shadow-lg bg-transparent placeholder-[#ffffffc7] px-[20px] font-semibold' placeholder='Email' required onChange={(e)=>setEmail(e.target.value)} value={email}/>
-                  <input type={show?"text":"password"} className='w-[100%] h-[50px] border-[2px] border-[#96969635] backdrop:blur-sm rounded-lg shadow-lg bg-transparent placeholder-[#ffffffc7] px-[20px] font-semibold' placeholder='Password' required onChange={(e)=>setPassword(e.target.value)} value={password}/>
-                  {!show && <IoEyeOutline className='w-[20px] h-[20px] cursor-pointer absolute right-[5%]' onClick={()=>setShow(prev => !prev)}/>}
-                  {show && <IoEye className='w-[20px] h-[20px] cursor-pointer absolute right-[5%]' onClick={()=>setShow(prev => !prev)}/>}
-                  <button className='w-[100%] h-[50px] bg-[#6060f5] rounded-lg flex items-center justify-center mt-[20px] text-[17px] font-semibold'>{loading? <Loading/> :"Create Account"}</button>
-                  <p className='flex gap-[10px]'>You have any account? <span className='text-[#5555f6cf] text-[17px] font-semibold cursor-pointer' onClick={()=>navigate("/login")}>Login</span></p>
+
+            <div className='space-y-4'>
+                <div>
+                    <label className='text-[13px] text-gray-400 mb-1.5 block'>Username</label>
+                    <input type="text" className='w-full h-[48px] border border-[#80808030] rounded-xl bg-[#ffffff05] placeholder-gray-600 px-5 text-[15px] focus:outline-none focus:border-[#0ea5e9] transition-colors' placeholder='John Doe' required onChange={(e)=>setName(e.target.value)} value={name}/>
+                </div>
+                <div>
+                    <label className='text-[13px] text-gray-400 mb-1.5 block'>Email</label>
+                    <input type="text" className='w-full h-[48px] border border-[#80808030] rounded-xl bg-[#ffffff05] placeholder-gray-600 px-5 text-[15px] focus:outline-none focus:border-[#0ea5e9] transition-colors' placeholder='you@example.com' required onChange={(e)=>setEmail(e.target.value)} value={email}/>
+                </div>
+                <div className='relative'>
+                    <label className='text-[13px] text-gray-400 mb-1.5 block'>Password</label>
+                    <input type={show?"text":"password"} className='w-full h-[48px] border border-[#80808030] rounded-xl bg-[#ffffff05] placeholder-gray-600 px-5 pr-12 text-[15px] focus:outline-none focus:border-[#0ea5e9] transition-colors' placeholder='••••••••' required onChange={(e)=>setPassword(e.target.value)} value={password}/>
+                    {!show && <IoEyeOutline className='w-5 h-5 cursor-pointer absolute right-4 top-[38px] text-gray-500 hover:text-white transition-colors' onClick={()=>setShow(prev => !prev)}/>}
+                    {show && <IoEye className='w-5 h-5 cursor-pointer absolute right-4 top-[38px] text-gray-500 hover:text-white transition-colors' onClick={()=>setShow(prev => !prev)}/>}
+                </div>
+                <button className='w-full h-[48px] bg-[#0ea5e9] hover:bg-[#0284c7] rounded-xl flex items-center justify-center text-[16px] font-semibold transition-colors cursor-pointer mt-2'>
+                    {loading ? <Loading/> : "Create Account"}
+                </button>
             </div>
+            
+            <p className='text-center text-[14px] text-gray-400'>
+                Already have an account? <span className='text-[#0ea5e9] font-semibold cursor-pointer hover:underline' onClick={()=>navigate("/login")}>Sign In</span>
+            </p>
         </form>
     </div>
     </div>

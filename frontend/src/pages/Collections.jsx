@@ -1,9 +1,10 @@
 import React, { useContext, useEffect, useState } from 'react'
-import { FaChevronRight } from "react-icons/fa";
-import { FaChevronDown } from "react-icons/fa";
-import Title from '../component/Title';
+import { motion, AnimatePresence } from 'framer-motion'
+import { FaChevronRight, FaChevronDown } from "react-icons/fa";
+import Title from '@/components/common/Title';
 import { shopDataContext } from '../context/ShopContext';
-import Card from '../component/Card';
+import ProductCard from '@/components/product/ProductCard';
+import Footer from '@/components/layout/Footer';
 
 function Collections() {
 
@@ -17,119 +18,142 @@ function Collections() {
     const toggleCategory = (e) =>{
         if(category.includes(e.target.value)){
             setCaterory(prev => prev.filter(item => item !== e.target.value))
-        }else
-         {
+        }else {
             setCaterory(prev => [...prev,e.target.value])
-         }
+        }
     }
 
     const toggleSubCategory = (e) =>{
          if(subCategory.includes(e.target.value)){
             setSubCaterory(prev => prev.filter(item => item !== e.target.value))
-        }else
-         {
+        }else {
             setSubCaterory(prev => [...prev,e.target.value])
-         }
+        }
     }
 
     const applyFilter = ()=>{
         let productCopy = products.slice()
-
         if(showSearch && search){
             productCopy = productCopy.filter(item => item.name.toLowerCase().includes(search.toLowerCase()))
         }
-        if(category.length > 0)
-        {
+        if(category.length > 0) {
             productCopy = productCopy.filter(item => category.includes(item.category))
         }
-        if(subCategory.length > 0)
-        {
+        if(subCategory.length > 0) {
             productCopy = productCopy.filter(item => subCategory.includes(item.subCategory))
         }
         setFilterProduct(productCopy)
-
     }
-
 
     const sortProducts = (e)=>{
         let fbCopy = filterProduct.slice()
-
         switch(sortType){
          case 'low-high':
             setFilterProduct(fbCopy.sort((a,b)=>(a.price - b.price)))
-        break;
-
+            break;
          case 'high-low':
             setFilterProduct(fbCopy.sort((a,b)=>(b.price - a.price)))
-        break;
+            break;
         default:
             applyFilter()
-        break;
+            break;
         }
-
     }
 
-    useEffect(()=>{
-        sortProducts()
-    },[sortType])
-
-
-    useEffect(()=>{
-    setFilterProduct(products)
-    },[products])
-
-    useEffect(()=>{
-        applyFilter()
-    },[category,subCategory,search ,showSearch])
-
-
-
-
-
+    useEffect(()=>{ sortProducts() },[sortType])
+    useEffect(()=>{ setFilterProduct(products) },[products])
+    useEffect(()=>{ applyFilter() },[category,subCategory,search,showSearch])
 
   return (
-    <div className='w-[99vw]  min-h-[100vh] bg-gradient-to-l from-[#141414] to-[#0c2025] flex items-start flex-col md:flex-row justify-start  pt-[70px] overflow-x-hidden z-[2] pb-[110px]'>
-      <div className={`md:w-[30vw] lg:w-[20vw] w-[100vw] md:min-h-[100vh] ${showFilter ? "h-[45vh]" :"h-[8vh]"}  p-[20px] border-r-[1px] border-gray-400  text-[#aaf5fa] lg:fixed `}>
-        <p className='text-[25px] font-semibold flex gap-[5px] items-center justify-start cursor-pointer' onClick={()=>setShowFilter(prev=>!prev)}>FILTERS
-            {!showFilter && <FaChevronRight className='text-[18px] md:hidden'  />}
-           {showFilter && <FaChevronDown className='text-[18px] md:hidden'  />}
+    <div className='w-full min-h-screen bg-gradient-to-l from-[#141414] to-[#0c2025] flex flex-col md:flex-row pt-[70px] overflow-x-hidden pb-[80px] md:pb-0'>
+      {/* Sidebar Filters */}
+      <div className={`md:w-[260px] lg:w-[280px] w-full ${showFilter ? "h-auto" : "h-[60px]"} md:h-auto p-5 md:border-r border-[#80808030] md:sticky md:top-[70px] md:self-start md:max-h-[calc(100vh-70px)] md:overflow-y-auto shrink-0`}>
+        <p className='text-[22px] font-bold flex gap-2 items-center cursor-pointer text-white mb-4' onClick={()=>setShowFilter(prev=>!prev)}>
+            FILTERS
+            <FaChevronRight className={`text-[14px] md:hidden transition-transform ${showFilter ? 'rotate-90' : ''}`} />
         </p>
-        
 
-        <div className={`border-[2px] border-[#dedcdc] pl-5 py-3 mt-6 rounded-md bg-slate-600 ${showFilter ? "" : "hidden"} md:block`}>
-            <p className='text-[18px] text-[#f8fafa]'>CATEGORIES</p>
-            <div className='w-[230px] h-[120px]  flex items-start justify-center gap-[10px] flex-col'>
-                <p className='flex items-center justify-center gap-[10px] text-[16px] font-light'> <input type="checkbox" value={'Men'} className='w-3' onChange={toggleCategory} /> Men</p>
-                 <p className='flex items-center justify-center gap-[10px] text-[16px] font-light'> <input type="checkbox" value={'Women'} className='w-3' onChange={toggleCategory} /> Women</p>
-                  <p className='flex items-center justify-center gap-[10px] text-[16px] font-light'> <input type="checkbox" value={'Kids'} onChange={toggleCategory} className='w-3' /> Kids</p>
+        <div className={`space-y-5 ${showFilter ? "" : "hidden"} md:block`}>
+            {/* Categories */}
+            <div className='bg-[#ffffff08] border border-[#80808030] rounded-lg p-4'>
+                <p className='text-[15px] font-semibold text-[#a5e8f7] mb-3 tracking-wide'>CATEGORIES</p>
+                <div className='space-y-2.5'>
+                    {['Men', 'Women', 'Kids'].map(cat => (
+                        <label key={cat} className='flex items-center gap-3 cursor-pointer group'>
+                            <input type="checkbox" value={cat} onChange={toggleCategory}
+                                className='w-4 h-4 rounded border-[#80808049] bg-transparent accent-[#0ea5e9] cursor-pointer' />
+                            <span className='text-[15px] text-gray-300 group-hover:text-white transition-colors'>{cat}</span>
+                        </label>
+                    ))}
+                </div>
             </div>
-        </div>
-        <div className={`border-[2px] border-[#dedcdc] pl-5 py-3 mt-6 rounded-md bg-slate-600 ${showFilter ? "" : "hidden"} md:block`}>
-            <p className='text-[18px] text-[#f8fafa]'>SUB-CATEGORIES</p>
-            <div className='w-[230px] h-[120px]  flex items-start justify-center gap-[10px] flex-col'>
-                <p className='flex items-center justify-center gap-[10px] text-[16px] font-light'> <input type="checkbox" value={'TopWear'} className='w-3' onChange={toggleSubCategory} /> TopWear</p>
-                 <p className='flex items-center justify-center gap-[10px] text-[16px] font-light'> <input type="checkbox" value={'BottomWear'} className='w-3' onChange={toggleSubCategory} /> BottomWear</p>
-                  <p className='flex items-center justify-center gap-[10px] text-[16px] font-light'> <input type="checkbox" value={'WinterWear'} className='w-3' onChange={toggleSubCategory} /> WinterWear</p>
+
+            {/* Sub Categories */}
+            <div className='bg-[#ffffff08] border border-[#80808030] rounded-lg p-4'>
+                <p className='text-[15px] font-semibold text-[#a5e8f7] mb-3 tracking-wide'>TYPE</p>
+                <div className='space-y-2.5'>
+                    {['TopWear', 'BottomWear', 'WinterWear'].map(sub => (
+                        <label key={sub} className='flex items-center gap-3 cursor-pointer group'>
+                            <input type="checkbox" value={sub} onChange={toggleSubCategory}
+                                className='w-4 h-4 rounded border-[#80808049] bg-transparent accent-[#0ea5e9] cursor-pointer' />
+                            <span className='text-[15px] text-gray-300 group-hover:text-white transition-colors'>{sub}</span>
+                        </label>
+                    ))}
+                </div>
             </div>
         </div>
       </div>
-      <div className='lg:pl-[20%] md:py-[10px] '>
-        <div className=' md:w-[80vw] w-[100vw]    flex  justify-between flex-col lg:flex-row lg:px-[50px] '>
-            <Title text1={"ALL"} text2={"COLLECTIONS"}/>
 
-            <select name="" id="" className='bg-slate-600 w-[60%] md:w-[200px] h-[50px] px-[10px] text-[white] rounded-lg hover:border-[#46d1f7] border-[2px]' onChange={(e)=>SetSortType(e.target.value)}>
-                <option value="relavent" className='w-[100%] h-[100%]'>Sort By: Relavent</option>
-                <option value="low-high" className='w-[100%] h-[100%]'>Sort By: Low to High</option>
-                <option value="high-low" className='w-[100%] h-[100%]'>Sort By: High to Low</option>
+      {/* Products Grid */}
+      <div className='flex-1 px-4 md:px-8 py-4'>
+        <div className='flex items-center justify-between mb-6 flex-wrap gap-4'>
+            <div className='flex items-center gap-3'>
+                <Title text1={"ALL"} text2={"COLLECTIONS"}/>
+            </div>
+            <select
+                className='bg-[#ffffff08] border border-[#80808030] text-white text-[14px] h-[44px] px-4 rounded-lg hover:border-[#0ea5e9] transition-colors cursor-pointer focus:outline-none focus:border-[#0ea5e9]'
+                onChange={(e)=>SetSortType(e.target.value)}
+            >
+                <option value="relavent" className='bg-[#1a1a1a]'>Sort By: Relevant</option>
+                <option value="low-high" className='bg-[#1a1a1a]'>Sort By: Low to High</option>
+                <option value="high-low" className='bg-[#1a1a1a]'>Sort By: High to Low</option>
             </select>
         </div>
-        <div className='lg:w-[80vw] md:w-[60vw]   w-[100vw] min-h-[70vh] flex items-center justify-center flex-wrap gap-[30px]'>
-            {
-             filterProduct.map((item,index)=>(
-                <Card key={index} id={item._id} name={item.name} price={item.price} image={item.image1} inventory={item.inventory} averageRating={item.averageRating} totalReviews={item.totalReviews}/>
-             ))
-            }
-        </div>
+
+        <motion.div
+            layout
+            className='w-full grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5'
+        >
+            <AnimatePresence>
+                {filterProduct.map((item, index) => (
+                    <motion.div
+                        key={item._id}
+                        layout
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        transition={{ duration: 0.3, delay: Math.min(index * 0.03, 0.3) }}
+                    >
+                        <ProductCard
+                            id={item._id}
+                            name={item.name}
+                            price={item.price}
+                            image={item.image1}
+                            inventory={item.inventory}
+                            averageRating={item.averageRating}
+                            totalReviews={item.totalReviews}
+                        />
+                    </motion.div>
+                ))}
+            </AnimatePresence>
+        </motion.div>
+
+        {filterProduct.length === 0 && (
+            <div className='w-full py-20 flex flex-col items-center justify-center'>
+                <p className='text-gray-500 text-xl'>No products found</p>
+                <p className='text-gray-600 text-sm mt-2'>Try adjusting your filters</p>
+            </div>
+        )}
       </div>
     </div>
   )

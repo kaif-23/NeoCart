@@ -19,7 +19,7 @@ export const placeOrder = async (req, res) => {
 
         // 🔍 VALIDATE STOCK BEFORE PLACING ORDER
         for (const item of items) {
-            const product = await Product.findById(item._id)
+            const product = await Product.findById(item.productId || item._id)
 
             if (!product) {
                 return res.status(404).json({ message: `Product ${item.name} not found` })
@@ -63,7 +63,7 @@ export const placeOrder = async (req, res) => {
 
         // 📦 DEDUCT STOCK for each item
         for (const item of items) {
-            const product = await Product.findById(item._id)
+            const product = await Product.findById(item.productId || item._id)
 
             if (product && product.inventory && product.inventory.get(item.size)) {
                 const currentInventory = product.inventory.get(item.size)
@@ -104,7 +104,7 @@ export const placeOrderRazorpay = async (req, res) => {
 
         // 🔍 VALIDATE STOCK BEFORE CREATING RAZORPAY ORDER
         for (const item of items) {
-            const product = await Product.findById(item._id)
+            const product = await Product.findById(item.productId || item._id)
 
             if (!product) {
                 return res.status(404).json({ message: `Product ${item.name} not found` })
@@ -178,7 +178,7 @@ export const verifyRazorpay = async (req, res) => {
             if (order) {
                 // 📦 DEDUCT STOCK after successful payment
                 for (const item of order.items) {
-                    const product = await Product.findById(item._id)
+                    const product = await Product.findById(item.productId || item._id)
 
                     if (product && product.inventory && product.inventory.get(item.size)) {
                         const currentInventory = product.inventory.get(item.size)
@@ -255,6 +255,21 @@ export const allOrders = async (req, res) => {
 
     }
 
+}
+
+export const getOrderDetail = async (req, res) => {
+    try {
+        const { orderId } = req.body
+        const order = await Order.findById(orderId)
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' })
+        }
+        const user = await User.findById(order.userId).select('name email phone profileImage role createdAt')
+        res.status(200).json({ order, user: user || null })
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({ message: 'getOrderDetail error' })
+    }
 }
 
 export const updateStatus = async (req, res) => {

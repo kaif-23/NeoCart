@@ -2,7 +2,7 @@ import React, { useState, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { authDataContext } from '../context/AuthContext';
 import axios from 'axios';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 
 const ForgotPassword = () => {
   const { serverUrl } = useContext(authDataContext);
