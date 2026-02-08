@@ -1,8 +1,8 @@
 import React, { useContext, useEffect, useState, useCallback } from 'react'
-import { authDataContext } from '../context/AuthContext'
+import { authDataContext } from '../contexts/AuthContext'
 import axios from 'axios'
 import { toast } from 'react-toastify'
-import Loading from '../component/Loading'
+import Loading from '../components/common/Loading'
 import { HiOutlineSearch, HiOutlineRefresh, HiOutlinePencil, HiOutlineCheck, HiOutlineX } from 'react-icons/hi'
 
 function Inventory() {

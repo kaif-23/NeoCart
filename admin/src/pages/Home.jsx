@@ -1,6 +1,6 @@
 import React, { useState, useContext, useEffect } from 'react'
-import { authDataContext } from '../context/AuthContext'
-import { adminDataContext } from '../context/AdminContext'
+import { authDataContext } from '../contexts/AuthContext'
+import { adminDataContext } from '../contexts/AdminContext'
 import axios from 'axios'
 import { useNavigate } from 'react-router-dom'
 import { HiOutlineCube, HiOutlineShoppingCart, HiOutlineChartBar, HiOutlineClock } from 'react-icons/hi2'

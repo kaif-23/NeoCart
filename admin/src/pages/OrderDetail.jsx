@@ -1,9 +1,9 @@
 import React, { useState, useContext, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { authDataContext } from '../context/AuthContext'
+import { authDataContext } from '../contexts/AuthContext'
 import axios from 'axios'
 import { toast } from 'react-toastify'
-import Loading from '../component/Loading'
+import Loading from '../components/common/Loading'
 import {
   HiOutlineArrowLeft,
   HiOutlineShoppingCart,

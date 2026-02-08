@@ -8,11 +8,11 @@ import OrderDetail from './pages/OrderDetail'
 import Login from './pages/Login'
 import Inventory from './pages/Inventory'
 import UserManagement from './pages/UserManagement'
-import { adminDataContext } from './context/AdminContext'
+import { adminDataContext } from './contexts/AdminContext'
 // eslint-disable-next-line no-unused-vars
 import { ToastContainer, toast } from 'react-toastify';
-import Nav from './component/Nav'
-import Sidebar from './component/Sidebar'
+import Nav from './components/layout/Nav'
+import Sidebar from './components/layout/Sidebar'
 
 function App() {
   let { adminData } = useContext(adminDataContext)

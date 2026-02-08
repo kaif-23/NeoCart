@@ -1,9 +1,9 @@
 import React, { useContext, useEffect, useState } from 'react'
-import { authDataContext } from '../context/AuthContext'
+import { authDataContext } from '../contexts/AuthContext'
 import axios from 'axios'
 import { toast } from 'react-toastify'
 import { useNavigate } from 'react-router-dom'
-import Loading from '../component/Loading'
+import Loading from '../components/common/Loading'
 import { HiOutlineSearch, HiOutlinePencil, HiOutlineTrash, HiOutlineRefresh } from 'react-icons/hi'
 
 function Lists() {

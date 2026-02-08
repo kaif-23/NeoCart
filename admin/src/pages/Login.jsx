@@ -3,11 +3,11 @@ import logo from '../assets/logo.png'
 import { HiOutlineEye, HiOutlineEyeOff } from 'react-icons/hi'
 import { HiOutlineEnvelope, HiOutlineLockClosed } from 'react-icons/hi2'
 import axios from 'axios'
-import { authDataContext } from '../context/AuthContext'
-import { adminDataContext } from '../context/AdminContext'
+import { authDataContext } from '../contexts/AuthContext'
+import { adminDataContext } from '../contexts/AdminContext'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
-import Loading from '../component/Loading'
+import Loading from '../components/common/Loading'
 
 function Login() {
     let [show, setShow] = useState(false)

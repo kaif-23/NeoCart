@@ -1,9 +1,9 @@
 import React, { useState, useContext, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { authDataContext } from '../context/AuthContext'
+import { authDataContext } from '../contexts/AuthContext'
 import axios from 'axios'
 import { toast } from 'react-toastify'
-import Loading from '../component/Loading'
+import Loading from '../components/common/Loading'
 import { HiOutlineShoppingCart, HiOutlineRefresh, HiOutlineChevronRight } from 'react-icons/hi'
 import { HiOutlineMapPin, HiOutlinePhone, HiOutlineClock } from 'react-icons/hi2'
 
