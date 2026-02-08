@@ -8,8 +8,8 @@ export const getCurrentUser = async (req, res) => {
         }
         return res.status(200).json(user)
     } catch (error) {
-        console.log(error)
-        return res.status(500).json({ message: `getCurrentUser error ${error}` })
+        console.error("getCurrentUser error:", error)
+        return res.status(500).json({ message: "Failed to fetch user" })
     }
 }
 
@@ -31,6 +31,7 @@ export const getAdmin = async (req, res) => {
             }
         })
     } catch (error) {
-        return res.status(500).json({ message: `getAdmin error: ${error.message}` })
+        console.error("getAdmin error:", error)
+        return res.status(500).json({ message: "Failed to fetch admin" })
     }
 }

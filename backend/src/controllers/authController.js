@@ -42,12 +42,13 @@ export const registration = async (req, res) => {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: process.env.NODE_ENV === 'production' ? "none" : "lax",
-            maxAge: 7 * 24 * 60 * 60 * 1000
+            maxAge: 8 * 60 * 60 * 1000
         })
-        return res.status(201).json(user)
+        const { password: _, ...userWithoutPassword } = user.toObject();
+        return res.status(201).json(userWithoutPassword)
     } catch (error) {
-        console.log("registration error")
-        return res.status(500).json({ message: `registration error ${error}` })
+        console.error("registration error:", error)
+        return res.status(500).json({ message: "Registration failed. Please try again." })
     }
 }
 
@@ -68,13 +69,14 @@ export const login = async (req, res) => {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: process.env.NODE_ENV === 'production' ? "none" : "lax",
-            maxAge: 7 * 24 * 60 * 60 * 1000
+            maxAge: 8 * 60 * 60 * 1000
         })
-        return res.status(201).json(user)
+        const { password: _, ...userWithoutPassword } = user.toObject();
+        return res.status(201).json(userWithoutPassword)
 
     } catch (error) {
-        console.log("login error")
-        return res.status(500).json({ message: `Login error ${error}` })
+        console.error("login error:", error)
+        return res.status(500).json({ message: "Login failed. Please try again." })
     }
 }
 
@@ -87,8 +89,8 @@ export const logOut = async (req, res) => {
         })
         return res.status(200).json({ message: "logOut successful" })
     } catch (error) {
-        console.log("logOut error")
-        return res.status(500).json({ message: `LogOut error ${error}` })
+        console.error("logOut error:", error)
+        return res.status(500).json({ message: "Logout failed. Please try again." })
     }
 }
 
@@ -129,12 +131,13 @@ export const googleLogin = async (req, res) => {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: process.env.NODE_ENV === 'production' ? "none" : "lax",
-            maxAge: 7 * 24 * 60 * 60 * 1000
+            maxAge: 8 * 60 * 60 * 1000
         })
-        return res.status(200).json(user)
+        const { password: _, ...userWithoutPassword } = user.toObject();
+        return res.status(200).json(userWithoutPassword)
 
     } catch (error) {
-        console.log("googleLogin error")
+        console.error("googleLogin error:", error)
         return res.status(500).json({ message: "Google login failed. Please try again." })
     }
 }
@@ -189,7 +192,8 @@ export const adminLogin = async (req, res) => {
         })
 
     } catch (error) {
-        return res.status(500).json({ message: `Login error: ${error.message}` })
+        console.error("Admin login error:", error)
+        return res.status(500).json({ message: "Login failed. Please try again." })
     }
 }
 
@@ -202,7 +206,8 @@ export const adminLogOut = async (req, res) => {
         })
         return res.status(200).json({ message: "Admin logout successful" })
     } catch (error) {
-        return res.status(500).json({ message: `Admin logout error: ${error.message}` })
+        console.error("Admin logout error:", error)
+        return res.status(500).json({ message: "Logout failed. Please try again." })
     }
 }
 

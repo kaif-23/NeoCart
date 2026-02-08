@@ -81,23 +81,27 @@ export const placeOrder = async (req, res) => {
         const newOrder = new Order(orderData)
         await newOrder.save()
 
+        // Atomic inventory decrement to prevent race conditions
         for (const item of items) {
-            const product = await Product.findById(item.productId || item._id)
+            const result = await Product.findOneAndUpdate(
+                {
+                    _id: item.productId || item._id,
+                    [`inventory.${item.size}.stock`]: { $gte: item.quantity },
+                    [`inventory.${item.size}.available`]: true
+                },
+                {
+                    $inc: { [`inventory.${item.size}.stock`]: -item.quantity }
+                },
+                { new: true }
+            );
 
-            if (product && product.inventory && product.inventory.get(item.size)) {
-                const currentInventory = product.inventory.get(item.size)
-
-                const newStock = Math.max(0, currentInventory.stock - item.quantity)
-
-                product.inventory.set(item.size, {
-                    stock: newStock,
-                    available: newStock > 0
-                })
-
-                product.markModified('inventory')
-
-                await product.save()
-                console.log(`✅ Stock updated for ${product.name} (${item.size}): ${currentInventory.stock} → ${newStock}`)
+            if (result) {
+                const updatedStock = result.inventory.get(item.size)?.stock;
+                if (updatedStock !== undefined && updatedStock <= 0) {
+                    await Product.findByIdAndUpdate(item.productId || item._id, {
+                        [`inventory.${item.size}.available`]: false
+                    });
+                }
             }
         }
 
@@ -105,8 +109,8 @@ export const placeOrder = async (req, res) => {
 
         return res.status(201).json({ message: 'Order Place' })
     } catch (error) {
-        console.log(error)
-        res.status(500).json({ message: 'Order Place error' })
+        console.error("placeOrder error:", error)
+        res.status(500).json({ message: 'Order placement failed. Please try again.' })
     }
 }
 
@@ -170,15 +174,15 @@ export const placeOrderRazorpay = async (req, res) => {
         }
         await razorpayInstance.orders.create(options, (error, order) => {
             if (error) {
-                console.log(error)
-                return res.status(500).json(error)
+                console.error("Razorpay order creation error:", error)
+                return res.status(500).json({ message: 'Payment initiation failed. Please try again.' })
             }
             res.status(200).json(order)
         })
     } catch (error) {
-        console.log(error)
+        console.error("placeOrderRazorpay error:", error)
         res.status(500).json({
-            message: error.message
+            message: 'Order placement failed. Please try again.'
         })
     }
 }
@@ -208,23 +212,27 @@ export const verifyRazorpay = async (req, res) => {
             const order = await Order.findById(orderInfo.receipt)
 
             if (order) {
+                // Atomic inventory decrement to prevent race conditions
                 for (const item of order.items) {
-                    const product = await Product.findById(item.productId || item._id)
+                    const result = await Product.findOneAndUpdate(
+                        {
+                            _id: item.productId || item._id,
+                            [`inventory.${item.size}.stock`]: { $gte: item.quantity },
+                            [`inventory.${item.size}.available`]: true
+                        },
+                        {
+                            $inc: { [`inventory.${item.size}.stock`]: -item.quantity }
+                        },
+                        { new: true }
+                    );
 
-                    if (product && product.inventory && product.inventory.get(item.size)) {
-                        const currentInventory = product.inventory.get(item.size)
-
-                        const newStock = Math.max(0, currentInventory.stock - item.quantity)
-
-                        product.inventory.set(item.size, {
-                            stock: newStock,
-                            available: newStock > 0
-                        })
-
-                        product.markModified('inventory')
-
-                        await product.save()
-                        console.log(`✅ Stock updated for ${product.name} (${item.size}): ${currentInventory.stock} → ${newStock}`)
+                    if (result) {
+                        const updatedStock = result.inventory.get(item.size)?.stock;
+                        if (updatedStock !== undefined && updatedStock <= 0) {
+                            await Product.findByIdAndUpdate(item.productId || item._id, {
+                                [`inventory.${item.size}.available`]: false
+                            });
+                        }
                     }
                 }
             }
@@ -241,9 +249,9 @@ export const verifyRazorpay = async (req, res) => {
             })
         }
     } catch (error) {
-        console.log(error)
+        console.error("verifyRazorpay error:", error)
         res.status(500).json({
-            message: error.message
+            message: 'Payment verification failed. Please try again.'
         })
     }
 }
@@ -255,8 +263,8 @@ export const userOrders = async (req, res) => {
         const orders = await Order.find({ userId })
         return res.status(200).json(orders)
     } catch (error) {
-        console.log(error)
-        return res.status(500).json({ message: "userOrders error" })
+        console.error("userOrders error:", error)
+        return res.status(500).json({ message: "Failed to fetch orders" })
     }
 }
 
@@ -268,8 +276,8 @@ export const allOrders = async (req, res) => {
         const orders = await Order.find({})
         res.status(200).json(orders)
     } catch (error) {
-        console.log(error)
-        return res.status(500).json({ message: "adminAllOrders error" })
+        console.error("allOrders error:", error)
+        return res.status(500).json({ message: "Failed to fetch orders" })
     }
 }
 
@@ -283,8 +291,8 @@ export const getOrderDetail = async (req, res) => {
         const user = await User.findById(order.userId).select('name email phone profileImage role createdAt')
         res.status(200).json({ order, user: user || null })
     } catch (error) {
-        console.log(error)
-        return res.status(500).json({ message: 'getOrderDetail error' })
+        console.error("getOrderDetail error:", error)
+        return res.status(500).json({ message: 'Failed to fetch order details' })
     }
 }
 
@@ -295,8 +303,9 @@ export const updateStatus = async (req, res) => {
         await Order.findByIdAndUpdate(orderId, { status })
         return res.status(201).json({ message: 'Status Updated' })
     } catch (error) {
+        console.error("updateStatus error:", error)
         return res.status(500).json({
-            message: error.message
+            message: 'Failed to update order status'
         })
     }
 }

@@ -1,5 +1,8 @@
 import User from '../models/userModel.js';
 
+// Escape special regex characters to prevent ReDoS
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 // Get all users with search and filters
 export const getAllUsers = async (req, res) => {
     try {
@@ -8,9 +11,10 @@ export const getAllUsers = async (req, res) => {
         let query = {};
 
         if (search) {
+            const sanitized = escapeRegex(search);
             query.$or = [
-                { name: { $regex: search, $options: 'i' } },
-                { email: { $regex: search, $options: 'i' } }
+                { name: { $regex: sanitized, $options: 'i' } },
+                { email: { $regex: sanitized, $options: 'i' } }
             ];
         }
 
@@ -38,7 +42,7 @@ export const getAllUsers = async (req, res) => {
     } catch (error) {
         return res.status(500).json({
             success: false,
-            message: `Error fetching users: ${error.message}`
+            message: `Error fetching users`
         });
     }
 };
@@ -68,7 +72,7 @@ export const getUserStats = async (req, res) => {
     } catch (error) {
         return res.status(500).json({
             success: false,
-            message: `Error fetching stats: ${error.message}`
+            message: `Error fetching stats`
         });
     }
 };
@@ -121,7 +125,7 @@ export const promoteUser = async (req, res) => {
     } catch (error) {
         return res.status(500).json({
             success: false,
-            message: `Error promoting user: ${error.message}`
+            message: `Error promoting user`
         });
     }
 };
@@ -181,7 +185,7 @@ export const demoteUser = async (req, res) => {
     } catch (error) {
         return res.status(500).json({
             success: false,
-            message: `Error demoting user: ${error.message}`
+            message: `Error demoting user`
         });
     }
 };
@@ -240,7 +244,7 @@ export const toggleUserStatus = async (req, res) => {
     } catch (error) {
         return res.status(500).json({
             success: false,
-            message: `Error toggling user status: ${error.message}`
+            message: `Error toggling user status`
         });
     }
 };

@@ -43,7 +43,7 @@ export const addProduct = async (req, res) => {
 
     } catch (error) {
         console.log("AddProduct error")
-        return res.status(500).json({ message: `AddProduct error ${error}` })
+        return res.status(500).json({ message: "Failed to add product" })
     }
 }
 
@@ -63,7 +63,7 @@ export const listProduct = async (req, res) => {
 
     } catch (error) {
         console.log("ListProduct error")
-        return res.status(500).json({ message: `ListProduct error ${error}` })
+        return res.status(500).json({ message: "Failed to list products" })
     }
 }
 
@@ -74,7 +74,7 @@ export const removeProduct = async (req, res) => {
         return res.status(200).json(product)
     } catch (error) {
         console.log("RemoveProduct error")
-        return res.status(500).json({ message: `RemoveProduct error ${error}` })
+        return res.status(500).json({ message: "Failed to remove product" })
     }
 }
 
@@ -96,7 +96,7 @@ export const updateInventory = async (req, res) => {
         return res.status(200).json(product)
     } catch (error) {
         console.log("UpdateInventory error:", error)
-        return res.status(500).json({ message: `UpdateInventory error ${error}` })
+        return res.status(500).json({ message: "Failed to update inventory" })
     }
 }
 
@@ -162,7 +162,7 @@ export const initializeAllInventory = async (req, res) => {
         })
     } catch (error) {
         console.log("InitializeAllInventory error:", error)
-        return res.status(500).json({ message: `InitializeAllInventory error ${error}` })
+        return res.status(500).json({ message: "Failed to initialize inventory" })
     }
 }
 
@@ -237,7 +237,7 @@ export const updateProduct = async (req, res) => {
 
     } catch (error) {
         console.log("UpdateProduct error:", error)
-        return res.status(500).json({ message: `UpdateProduct error ${error}` })
+        return res.status(500).json({ message: "Failed to update product" })
     }
 }
 
@@ -292,7 +292,7 @@ export const addReview = async (req, res) => {
 
     } catch (error) {
         console.log("AddReview error:", error)
-        return res.status(500).json({ message: `AddReview error ${error}` })
+        return res.status(500).json({ message: "Failed to add review" })
     }
 }
 
@@ -317,7 +317,7 @@ export const getProductReviews = async (req, res) => {
 
     } catch (error) {
         console.log("GetProductReviews error:", error)
-        return res.status(500).json({ message: `GetProductReviews error ${error}` })
+        return res.status(500).json({ message: "Failed to fetch reviews" })
     }
 }
 
@@ -357,7 +357,7 @@ export const updateReview = async (req, res) => {
 
     } catch (error) {
         console.log("UpdateReview error:", error)
-        return res.status(500).json({ message: `UpdateReview error ${error}` })
+        return res.status(500).json({ message: "Failed to update review" })
     }
 }
 
@@ -401,6 +401,6 @@ export const deleteReview = async (req, res) => {
 
     } catch (error) {
         console.log("DeleteReview error:", error)
-        return res.status(500).json({ message: `DeleteReview error ${error}` })
+        return res.status(500).json({ message: "Failed to delete review" })
     }
 }

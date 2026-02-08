@@ -11,6 +11,7 @@ import cartRoutes from "./routes/cartRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import superadminRoutes from "./routes/superadminRoutes.js";
 import profileRoutes from "./routes/profileRoutes.js";
+import webhookRoutes from "./routes/webhookRoutes.js";
 import sessionTimeout from "./middlewares/sessionTimeout.js";
 
 const app = express();
@@ -68,6 +69,15 @@ const cartLimiter = rateLimit({
 
 app.use(limiter); // Apply to all routes
 
+// Webhook routes - MUST be before express.json() because
+// Razorpay signature verification needs the raw request body
+app.use('/api/webhook', express.raw({ type: 'application/json' }), (req, res, next) => {
+    // Store raw body for signature verification, then parse JSON
+    req.rawBody = req.body.toString('utf8')
+    req.body = JSON.parse(req.rawBody)
+    next()
+}, webhookRoutes)
+
 // Middleware
 app.use(express.json({ limit: '10mb' })); // Limit payload size
 app.use(cookieParser());
@@ -87,8 +97,14 @@ const allowedOrigins = [
 
 const corsOptions = {
     origin: function (origin, callback) {
-        // Allow requests with no origin (mobile apps, Postman, curl, etc.)
-        if (!origin) return callback(null, true);
+        // In production, reject requests with no origin header
+        if (!origin) {
+            if (process.env.NODE_ENV === 'production') {
+                return callback(new Error('Not allowed by CORS'));
+            }
+            // Allow no-origin in development (Postman, curl, etc.)
+            return callback(null, true);
+        }
 
         if (allowedOrigins.indexOf(origin) !== -1) {
             callback(null, true);
