@@ -82,11 +82,13 @@ app.use('/images', express.static('public'));
 
 // Enhanced CORS configuration
 const allowedOrigins = [
-  "https://neocart-frontend.onrender.com",
-  "https://neocart-admin.onrender.com",
-  "http://localhost:5173",
-  "http://localhost:5174",
-];
+  process.env.FRONTEND_URL,
+  process.env.ADMIN_URL,
+  "http://localhost:5173", // Development frontend
+  "http://localhost:5174", // Development admin
+  "http://localhost:5175", // Development admin (alternate)
+  "http://localhost:5176", // Development frontend (alternate)
+].filter(Boolean); // Remove undefined values
 
 const corsOptions = {
   origin: function (origin, callback) {
