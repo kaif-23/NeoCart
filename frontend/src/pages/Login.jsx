@@ -38,8 +38,9 @@ function Login() {
             toast.success("User Login Successful")
             
         } catch (error) {
+            setLoading(false)
             console.log(error)
-            toast.error("User Login Failed")
+            toast.error(error.response?.data?.message || "User Login Failed")
         }
     }
      const googlelogin = async () => {

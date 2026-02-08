@@ -1,73 +1,169 @@
 import React from 'react';
+import {
+  Card,
+  CardContent,
+  CardActions,
+  Typography,
+  Button,
+  Chip,
+  Box,
+  Stack,
+  IconButton,
+} from '@mui/material';
+import {
+  Home,
+  Work,
+  LocationOn,
+  Edit,
+  Delete,
+  CheckCircle,
+} from '@mui/icons-material';
 
 const AddressCard = ({ address, onEdit, onDelete, onSetDefault }) => {
+  const getLabelIcon = (label) => {
+    switch (label) {
+      case 'Home':
+        return <Home fontSize="small" />;
+      case 'Work':
+        return <Work fontSize="small" />;
+      default:
+        return <LocationOn fontSize="small" />;
+    }
+  };
+
   const getLabelColor = (label) => {
     switch (label) {
       case 'Home':
-        return 'bg-blue-100 text-blue-800';
+        return 'primary';
       case 'Work':
-        return 'bg-purple-100 text-purple-800';
-      case 'Other':
-        return 'bg-gray-100 text-gray-800';
+        return 'secondary';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'default';
     }
   };
 
   return (
-    <div className={`border-2 rounded-lg p-4 ${address.isDefault ? 'border-blue-500 bg-blue-50' : 'border-gray-200'} transition-all hover:shadow-md`}>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className={`px-3 py-1 rounded-full text-xs font-medium ${getLabelColor(address.label)}`}>
-            {address.label}
-          </span>
+    <Card 
+      elevation={address.isDefault ? 6 : 3}
+      sx={{ 
+        height: '100%',
+        border: address.isDefault ? 2 : 0,
+        borderColor: address.isDefault ? 'primary.main' : 'transparent',
+        borderRadius: 3,
+        position: 'relative',
+        transition: 'all 0.3s',
+        boxShadow: address.isDefault 
+          ? '0 8px 30px rgba(12, 32, 37, 0.25)' 
+          : '0 4px 20px rgba(0, 0, 0, 0.1)',
+        '&:hover': {
+          boxShadow: '0 12px 40px rgba(12, 32, 37, 0.3)',
+          transform: 'translateY(-4px)'
+        }
+      }}
+    >
+      <CardContent>
+        {/* Header with Label and Default Badge */}
+        <Stack direction="row" spacing={1} alignItems="center" mb={2}>
+          <Chip
+            icon={getLabelIcon(address.label)}
+            label={address.label}
+            color={getLabelColor(address.label)}
+            size="small"
+          />
           {address.isDefault && (
-            <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-              ✓ Default
-            </span>
+            <Chip
+              icon={<CheckCircle fontSize="small" />}
+              label="Default"
+              color="success"
+              size="small"
+            />
           )}
-        </div>
-      </div>
+        </Stack>
 
-      {/* Address Details */}
-      <div className="space-y-1 text-sm text-gray-700 mb-4">
-        <p className="font-semibold text-gray-900">
-          {address.firstName} {address.lastName}
-        </p>
-        <p>{address.addressLine1}</p>
-        {address.addressLine2 && <p>{address.addressLine2}</p>}
-        <p>
-          {address.city}, {address.state} {address.zipCode}
-        </p>
-        <p>{address.country}</p>
-        <p className="text-gray-600">Phone: {address.phone}</p>
-      </div>
+        {/* Address Details */}
+        <Box>
+          <Typography variant="subtitle1" fontWeight="600" gutterBottom>
+            {address.firstName} {address.lastName}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            {address.addressLine1}
+          </Typography>
+          {address.addressLine2 && (
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              {address.addressLine2}
+            </Typography>
+          )}
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            {address.city}, {address.state} {address.zipCode}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            {address.country}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            <strong>Phone:</strong> {address.phone}
+          </Typography>
+        </Box>
+      </CardContent>
 
-      {/* Action Buttons */}
-      <div className="flex gap-2 pt-3 border-t border-gray-200">
-        {!address.isDefault && (
-          <button
-            onClick={() => onSetDefault(address._id)}
-            className="flex-1 text-xs bg-blue-600 text-white py-2 px-3 rounded hover:bg-blue-700 transition-colors"
+      <CardActions sx={{ px: 2, pb: 2, pt: 0 }}>
+        <Stack direction="row" spacing={1} width="100%">
+          {!address.isDefault && (
+            <Button
+              size="small"
+              variant="contained"
+              onClick={() => onSetDefault(address._id)}
+              fullWidth
+              sx={{
+                bgcolor: '#0c2025',
+                '&:hover': {
+                  bgcolor: '#1a1a1a'
+                },
+                borderRadius: 2,
+                textTransform: 'none',
+                fontWeight: 600
+              }}
+            >
+              Set Default
+            </Button>
+          )}
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<Edit />}
+            onClick={() => onEdit(address)}
+            fullWidth
+            sx={{
+              borderColor: '#0c2025',
+              color: '#0c2025',
+              '&:hover': {
+                borderColor: '#1a1a1a',
+                bgcolor: 'rgba(12, 32, 37, 0.05)'
+              },
+              borderRadius: 2,
+              textTransform: 'none',
+              fontWeight: 600
+            }}
           >
-            Set as Default
-          </button>
-        )}
-        <button
-          onClick={() => onEdit(address)}
-          className="flex-1 text-xs bg-gray-200 text-gray-700 py-2 px-3 rounded hover:bg-gray-300 transition-colors"
-        >
-          Edit
-        </button>
-        <button
-          onClick={() => onDelete(address._id)}
-          className="flex-1 text-xs bg-red-100 text-red-700 py-2 px-3 rounded hover:bg-red-200 transition-colors"
-        >
-          Delete
-        </button>
-      </div>
-    </div>
+            Edit
+          </Button>
+          <Button
+            size="small"
+            variant="outlined"
+            color="error"
+            startIcon={<Delete />}
+            onClick={() => onDelete(address._id)}
+            fullWidth
+            sx={{
+              borderRadius: 2,
+              textTransform: 'none',
+              fontWeight: 600
+            }}
+          >
+            Delete
+          </Button>
+        </Stack>
+      </CardActions>
+    </Card>
   );
 };
 

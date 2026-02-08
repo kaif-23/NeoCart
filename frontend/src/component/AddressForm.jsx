@@ -1,4 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  TextField,
+  Button,
+  Grid,
+  MenuItem,
+  FormControlLabel,
+  Checkbox,
+  Stack,
+} from '@mui/material';
 
 const AddressForm = ({ address, onSubmit, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -35,198 +45,206 @@ const AddressForm = ({ address, onSubmit, onCancel }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <Box component="form" onSubmit={handleSubmit}>
+      <Grid container spacing={3}>
         {/* Label */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Label <span className="text-red-500">*</span>
-          </label>
-          <select
+        <Grid item xs={12} sm={6}>
+          <TextField
+            select
+            fullWidth
+            label="Label"
             name="label"
             value={formData.label}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             required
+            variant="outlined"
           >
-            <option value="Home">Home</option>
-            <option value="Work">Work</option>
-            <option value="Other">Other</option>
-          </select>
-        </div>
+            <MenuItem value="Home">Home</MenuItem>
+            <MenuItem value="Work">Work</MenuItem>
+            <MenuItem value="Other">Other</MenuItem>
+          </TextField>
+        </Grid>
 
         {/* Phone */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Phone <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="tel"
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Phone"
             name="phone"
+            type="tel"
             value={formData.phone}
             onChange={handleChange}
             placeholder="+1 (555) 123-4567"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             required
+            variant="outlined"
           />
-        </div>
+        </Grid>
 
         {/* First Name */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            First Name <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="First Name"
             name="firstName"
             value={formData.firstName}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             required
+            variant="outlined"
           />
-        </div>
+        </Grid>
 
         {/* Last Name */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Last Name <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
+        <Grid item xs={12} sm={6}>
+          <TextField
+            fullWidth
+            label="Last Name"
             name="lastName"
             value={formData.lastName}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             required
+            variant="outlined"
           />
-        </div>
-      </div>
+        </Grid>
 
-      {/* Address Line 1 */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Address Line 1 <span className="text-red-500">*</span>
-        </label>
-        <input
-          type="text"
-          name="addressLine1"
-          value={formData.addressLine1}
-          onChange={handleChange}
-          placeholder="Street address, P.O. box"
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          required
-        />
-      </div>
+        {/* Address Line 1 */}
+        <Grid item xs={12}>
+          <TextField
+            fullWidth
+            label="Address Line 1"
+            name="addressLine1"
+            value={formData.addressLine1}
+            onChange={handleChange}
+            placeholder="Street address, P.O. box"
+            required
+            variant="outlined"
+          />
+        </Grid>
 
-      {/* Address Line 2 */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Address Line 2 (Optional)
-        </label>
-        <input
-          type="text"
-          name="addressLine2"
-          value={formData.addressLine2}
-          onChange={handleChange}
-          placeholder="Apartment, suite, unit, building, floor, etc."
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        />
-      </div>
+        {/* Address Line 2 */}
+        <Grid item xs={12}>
+          <TextField
+            fullWidth
+            label="Address Line 2 (Optional)"
+            name="addressLine2"
+            value={formData.addressLine2}
+            onChange={handleChange}
+            placeholder="Apartment, suite, unit, building, floor, etc."
+            variant="outlined"
+          />
+        </Grid>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* City */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            City <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
+        <Grid item xs={12} sm={4}>
+          <TextField
+            fullWidth
+            label="City"
             name="city"
             value={formData.city}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             required
+            variant="outlined"
           />
-        </div>
+        </Grid>
 
         {/* State */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            State <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
+        <Grid item xs={12} sm={4}>
+          <TextField
+            fullWidth
+            label="State"
             name="state"
             value={formData.state}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             required
+            variant="outlined"
           />
-        </div>
+        </Grid>
 
         {/* Zip Code */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Zip Code <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
+        <Grid item xs={12} sm={4}>
+          <TextField
+            fullWidth
+            label="Zip Code"
             name="zipCode"
             value={formData.zipCode}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             required
+            variant="outlined"
           />
-        </div>
-      </div>
+        </Grid>
 
-      {/* Country */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Country <span className="text-red-500">*</span>
-        </label>
-        <input
-          type="text"
-          name="country"
-          value={formData.country}
-          onChange={handleChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          required
-        />
-      </div>
+        {/* Country */}
+        <Grid item xs={12}>
+          <TextField
+            fullWidth
+            label="Country"
+            name="country"
+            value={formData.country}
+            onChange={handleChange}
+            required
+            variant="outlined"
+          />
+        </Grid>
 
-      {/* Default Address Checkbox */}
-      <div className="flex items-center">
-        <input
-          type="checkbox"
-          name="isDefault"
-          id="isDefault"
-          checked={formData.isDefault}
-          onChange={handleChange}
-          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-        />
-        <label htmlFor="isDefault" className="ml-2 text-sm text-gray-700">
-          Set as default address
-        </label>
-      </div>
+        {/* Default Address Checkbox */}
+        <Grid item xs={12}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                name="isDefault"
+                checked={formData.isDefault}
+                onChange={handleChange}
+              />
+            }
+            label="Set as default address"
+          />
+        </Grid>
 
-      {/* Buttons */}
-      <div className="flex gap-3 pt-4">
-        <button
-          type="submit"
-          className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          {address ? 'Update Address' : 'Save Address'}
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors"
-        >
-          Cancel
-        </button>
-      </div>
-    </form>
+        {/* Buttons */}
+        <Grid item xs={12}>
+          <Stack direction="row" spacing={2}>
+            <Button
+              type="submit"
+              variant="contained"
+              size="large"
+              fullWidth
+              sx={{
+                bgcolor: '#0c2025',
+                '&:hover': {
+                  bgcolor: '#1a1a1a'
+                },
+                borderRadius: 2,
+                textTransform: 'none',
+                fontWeight: 600,
+                py: 1.5
+              }}
+            >
+              {address ? 'Update Address' : 'Save Address'}
+            </Button>
+            <Button
+              type="button"
+              variant="outlined"
+              size="large"
+              onClick={onCancel}
+              fullWidth
+              sx={{
+                borderColor: '#0c2025',
+                color: '#0c2025',
+                '&:hover': {
+                  borderColor: '#1a1a1a',
+                  bgcolor: 'rgba(12, 32, 37, 0.05)'
+                },
+                borderRadius: 2,
+                textTransform: 'none',
+                fontWeight: 600,
+                py: 1.5
+              }}
+            >
+              Cancel
+            </Button>
+          </Stack>
+        </Grid>
+      </Grid>
+    </Box>
   );
 };
 

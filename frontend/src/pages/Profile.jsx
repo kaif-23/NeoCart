@@ -4,6 +4,31 @@ import AddressForm from '../component/AddressForm';
 import AddressCard from '../component/AddressCard';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import {
+  Box,
+  Container,
+  Paper,
+  Tabs,
+  Tab,
+  Typography,
+  TextField,
+  Button,
+  Avatar,
+  Grid,
+  CircularProgress,
+  Card,
+  CardContent,
+  Divider,
+  IconButton,
+  Chip,
+} from '@mui/material';
+import {
+  Person,
+  LocationOn,
+  Security,
+  Edit,
+  PhotoCamera,
+} from '@mui/icons-material';
 
 const Profile = () => {
   const { serverUrl } = useContext(authDataContext);
@@ -252,253 +277,439 @@ const Profile = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+        <CircularProgress size={60} />
+      </Box>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">My Profile</h1>
-
-      {/* Tabs */}
-      <div className="flex border-b mb-6">
-        <button
-          onClick={() => setActiveTab('personal')}
-          className={`px-6 py-3 font-medium transition-colors ${
-            activeTab === 'personal'
-              ? 'border-b-2 border-blue-600 text-blue-600'
-              : 'text-gray-600 hover:text-gray-800'
-          }`}
+    <Box 
+      sx={{ 
+        minHeight: '100vh',
+        background: 'linear-gradient(to left, #141414, #0c2025)',
+        pt: { xs: '90px', md: '90px' },
+        pb: { xs: 12, md: 4 }
+      }}
+    >
+      <Container maxWidth="lg">
+        <Typography 
+          variant="h4" 
+          fontWeight="bold" 
+          gutterBottom 
+          sx={{ 
+            mb: 4, 
+            color: 'white',
+            textAlign: { xs: 'center', md: 'left' }
+          }}
         >
-          📝 Personal Info
-        </button>
-        <button
-          onClick={() => setActiveTab('addresses')}
-          className={`px-6 py-3 font-medium transition-colors ${
-            activeTab === 'addresses'
-              ? 'border-b-2 border-blue-600 text-blue-600'
-              : 'text-gray-600 hover:text-gray-800'
-          }`}
+          My Profile
+        </Typography>
+
+        <Paper 
+          elevation={8} 
+          sx={{ 
+            mb: 3,
+            borderRadius: 3,
+            overflow: 'hidden',
+            bgcolor: 'rgba(255, 255, 255, 0.95)'
+          }}
         >
-          📍 Addresses
-        </button>
-        <button
-          onClick={() => setActiveTab('security')}
-          className={`px-6 py-3 font-medium transition-colors ${
-            activeTab === 'security'
-              ? 'border-b-2 border-blue-600 text-blue-600'
-              : 'text-gray-600 hover:text-gray-800'
-          }`}
+        <Tabs
+          value={activeTab}
+          onChange={(e, newValue) => setActiveTab(newValue)}
+          variant="scrollable"
+          scrollButtons="auto"
+          sx={{
+            bgcolor: 'rgba(12, 32, 37, 0.08)',
+            '& .MuiTab-root': { 
+              textTransform: 'none', 
+              fontSize: { xs: '0.875rem', md: '1rem' },
+              fontWeight: 600,
+              color: '#555',
+              py: 2,
+              minWidth: { xs: 'auto', md: 120 },
+              px: { xs: 2, md: 3 }
+            },
+            '& .Mui-selected': {
+              color: '#0c2025 !important'
+            },
+            '& .MuiTabs-indicator': {
+              height: 3,
+              bgcolor: '#0c2025'
+            },
+            '& .MuiTabs-scrollButtons': {
+              color: '#0c2025',
+              '&.Mui-disabled': {
+                opacity: 0.3
+              }
+            }
+          }}
         >
-          🔒 Security
-        </button>
-      </div>
+          <Tab 
+            icon={<Person sx={{ display: { xs: 'none', sm: 'block' } }} />} 
+            iconPosition="start" 
+            label="Personal Info" 
+            value="personal"
+          />
+          <Tab 
+            icon={<LocationOn sx={{ display: { xs: 'none', sm: 'block' } }} />} 
+            iconPosition="start" 
+            label="Addresses" 
+            value="addresses"
+          />
+          <Tab 
+            icon={<Security sx={{ display: { xs: 'none', sm: 'block' } }} />} 
+            iconPosition="start" 
+            label="Security" 
+            value="security"
+          />
+        </Tabs>
 
-      {/* Personal Info Tab */}
-      {activeTab === 'personal' && (
-        <div className="space-y-6">
-          {/* Profile Image */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold mb-4">Profile Picture</h2>
-            <div className="flex items-center gap-6">
-              <div className="w-24 h-24 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center">
-                {imagePreview || user?.profileImage ? (
-                  <img
-                    src={imagePreview || user.profileImage}
-                    alt="Profile"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="text-4xl text-gray-400">
-                    {user?.name?.charAt(0).toUpperCase()}
-                  </span>
-                )}
-              </div>
-              <form onSubmit={handleImageUpload} className="flex-1">
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/jpg"
-                  onChange={handleImageChange}
-                  className="mb-2"
-                />
-                {selectedImage && (
-                  <button
-                    type="submit"
-                    className="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700"
-                  >
-                    Upload Image
-                  </button>
-                )}
-                <p className="text-xs text-gray-500 mt-1">Max 5MB, JPG/PNG only</p>
-              </form>
-            </div>
-          </div>
-
-          {/* Personal Details */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold mb-4">Personal Details</h2>
-            <form onSubmit={handleUpdatePersonalInfo} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  value={user?.email || ''}
-                  disabled
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 cursor-not-allowed"
-                />
-                <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={personalInfo.name}
-                  onChange={(e) => setPersonalInfo({ ...personalInfo, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Phone
-                </label>
-                <input
-                  type="tel"
-                  value={personalInfo.phone}
-                  onChange={(e) => setPersonalInfo({ ...personalInfo, phone: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="bg-blue-600 text-white py-2 px-6 rounded-lg hover:bg-blue-700 transition-colors"
+        <Box sx={{ p: 3 }}>
+          {/* Personal Info Tab */}
+          {activeTab === 'personal' && (
+            <Box>
+              {/* Profile Image Section */}
+              <Card 
+                elevation={3} 
+                sx={{ 
+                  mb: 3, 
+                  bgcolor: 'white',
+                  borderRadius: 3,
+                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)'
+                }}
               >
-                Save Changes
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+                <CardContent>
+                  <Typography variant="h6" gutterBottom fontWeight="600">
+                    Profile Picture
+                  </Typography>
+                  <Box display="flex" alignItems="center" gap={3}>
+                    <Box position="relative">
+                      <Avatar
+                        src={imagePreview || user?.profileImage}
+                        alt={user?.name}
+                        sx={{ 
+                          width: { xs: 80, md: 100 }, 
+                          height: { xs: 80, md: 100 },
+                          fontSize: '2.5rem',
+                          bgcolor: 'linear-gradient(135deg, #0c2025 0%, #1a1a1a 100%)',
+                          background: 'linear-gradient(135deg, #0c2025 0%, #1a1a1a 100%)',
+                          border: '3px solid #88d9ee',
+                          boxShadow: '0 4px 20px rgba(136, 217, 238, 0.3)'
+                        }}
+                      >
+                        {!imagePreview && !user?.profileImage && user?.name?.charAt(0).toUpperCase()}
+                      </Avatar>
+                      <IconButton
+                        component="label"
+                        sx={{
+                          position: 'absolute',
+                          bottom: -4,
+                          right: -4,
+                          bgcolor: '#0c2025',
+                          color: 'white',
+                          '&:hover': { bgcolor: '#1a1a1a' },
+                          width: 40,
+                          height: 40,
+                          border: '2px solid white',
+                          boxShadow: '0 2px 10px rgba(0,0,0,0.2)'
+                        }}
+                      >
+                        <PhotoCamera fontSize="small" />
+                        <input
+                          type="file"
+                          hidden
+                          accept="image/jpeg,image/png,image/jpg"
+                          onChange={handleImageChange}
+                        />
+                      </IconButton>
+                    </Box>
+                    <Box flex={1}>
+                      {selectedImage && (
+                        <Box>
+                          <Typography variant="body2" color="text.secondary" gutterBottom>
+                            {selectedImage.name}
+                          </Typography>
+                          <Button
+                            variant="contained"
+                            onClick={handleImageUpload}
+                            size="medium"
+                            sx={{
+                              bgcolor: '#0c2025',
+                              '&:hover': {
+                                bgcolor: '#1a1a1a'
+                              },
+                              borderRadius: 2,
+                              textTransform: 'none',
+                              fontWeight: 600
+                            }}
+                          >
+                            Upload Image
+                          </Button>
+                        </Box>
+                      )}
+                      <Typography variant="caption" color="text.secondary" display="block" mt={1}>
+                        Max 5MB, JPG/PNG only
+                      </Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
 
-      {/* Addresses Tab */}
-      {activeTab === 'addresses' && (
-        <div className="space-y-6">
-          {!showAddressForm ? (
-            <>
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold">Saved Addresses</h2>
-                <button
-                  onClick={() => setShowAddressForm(true)}
-                  className="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  + Add New Address
-                </button>
-              </div>
-
-              {addresses.length === 0 ? (
-                <div className="bg-white rounded-lg shadow-md p-12 text-center">
-                  <p className="text-gray-500 mb-4">No saved addresses yet</p>
-                  <button
-                    onClick={() => setShowAddressForm(true)}
-                    className="text-blue-600 hover:underline"
-                  >
-                    Add your first address
-                  </button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {addresses.map((address) => (
-                    <AddressCard
-                      key={address._id}
-                      address={address}
-                      onEdit={handleEditAddress}
-                      onDelete={handleDeleteAddress}
-                      onSetDefault={handleSetDefaultAddress}
-                    />
-                  ))}
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold mb-4">
-                {editingAddress ? 'Edit Address' : 'Add New Address'}
-              </h2>
-              <AddressForm
-                address={editingAddress}
-                onSubmit={editingAddress ? handleUpdateAddress : handleAddAddress}
-                onCancel={handleCancelAddressForm}
-              />
-            </div>
+              {/* Personal Details Section */}
+              <Card 
+                elevation={3} 
+                sx={{ 
+                  bgcolor: 'white',
+                  borderRadius: 3,
+                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)'
+                }}
+              >
+                <CardContent>
+                  <Typography variant="h6" gutterBottom fontWeight="600">
+                    Personal Details
+                  </Typography>
+                  <Box component="form" onSubmit={handleUpdatePersonalInfo}>
+                    <Grid container spacing={3}>
+                      <Grid item xs={12}>
+                        <TextField
+                          fullWidth
+                          label="Email"
+                          type="email"
+                          value={user?.email || ''}
+                          disabled
+                          helperText="Email cannot be changed"
+                          variant="outlined"
+                        />
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <TextField
+                          fullWidth
+                          label="Name"
+                          type="text"
+                          value={personalInfo.name}
+                          onChange={(e) => setPersonalInfo({ ...personalInfo, name: e.target.value })}
+                          required
+                          variant="outlined"
+                        />
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <TextField
+                          fullWidth
+                          label="Phone"
+                          type="tel"
+                          value={personalInfo.phone}
+                          onChange={(e) => setPersonalInfo({ ...personalInfo, phone: e.target.value })}
+                          variant="outlined"
+                        />
+                      </Grid>
+                      <Grid item xs={12}>
+                        <Button
+                          type="submit"
+                          variant="contained"
+                          size="large"
+                          sx={{
+                            bgcolor: '#0c2025',
+                            '&:hover': {
+                              bgcolor: '#1a1a1a'
+                            },
+                            borderRadius: 2,
+                            textTransform: 'none',
+                            fontWeight: 600,
+                            py: 1.5
+                          }}
+                        >
+                          Save Changes
+                        </Button>
+                      </Grid>
+                    </Grid>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Box>
           )}
-        </div>
-      )}
 
-      {/* Security Tab */}
-      {activeTab === 'security' && (
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-4">Change Password</h2>
-          <form onSubmit={handleChangePassword} className="space-y-4 max-w-md">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Current Password <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="password"
-                value={passwordData.currentPassword}
-                onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
+          {/* Addresses Tab */}
+          {activeTab === 'addresses' && (
+            <Box>
+              {!showAddressForm ? (
+                <>
+                  <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+                    <Typography variant="h6" fontWeight="600">
+                      Saved Addresses
+                    </Typography>
+                    <Button
+                      variant="contained"
+                      startIcon={<LocationOn />}
+                      onClick={() => setShowAddressForm(true)}
+                      sx={{
+                        bgcolor: '#0c2025',
+                        '&:hover': {
+                          bgcolor: '#1a1a1a'
+                        },
+                        borderRadius: 2,
+                        textTransform: 'none',
+                        fontWeight: 600
+                      }}
+                    >
+                      Add New Address
+                    </Button>
+                  </Box>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                New Password <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="password"
-                value={passwordData.newPassword}
-                onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                required
-                minLength={8}
-              />
-              <p className="text-xs text-gray-500 mt-1">Minimum 8 characters</p>
-            </div>
+                  {addresses.length === 0 ? (
+                    <Card 
+                      elevation={2} 
+                      sx={{ 
+                        bgcolor: 'white', 
+                        py: 6,
+                        borderRadius: 3,
+                        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)'
+                      }}
+                    >
+                      <CardContent>
+                        <Box textAlign="center">
+                          <LocationOn sx={{ fontSize: 60, color: 'grey.400', mb: 2 }} />
+                          <Typography variant="h6" color="text.secondary" gutterBottom>
+                            No saved addresses yet
+                          </Typography>
+                          <Button
+                            variant="contained"
+                            onClick={() => setShowAddressForm(true)}
+                            sx={{ 
+                              mt: 2,
+                              bgcolor: '#0c2025',
+                              '&:hover': {
+                                bgcolor: '#1a1a1a'
+                              },
+                              borderRadius: 2,
+                              textTransform: 'none',
+                              fontWeight: 600
+                            }}
+                          >
+                            Add your first address
+                          </Button>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <Grid container spacing={3}>
+                      {addresses.map((address) => (
+                        <Grid item xs={12} md={6} key={address._id}>
+                          <AddressCard
+                            address={address}
+                            onEdit={handleEditAddress}
+                            onDelete={handleDeleteAddress}
+                            onSetDefault={handleSetDefaultAddress}
+                          />
+                        </Grid>
+                      ))}
+                    </Grid>
+                  )}
+                </>
+              ) : (
+                <Card 
+                  elevation={3} 
+                  sx={{ 
+                    bgcolor: 'white',
+                    borderRadius: 3,
+                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)'
+                  }}
+                >
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom fontWeight="600">
+                      {editingAddress ? 'Edit Address' : 'Add New Address'}
+                    </Typography>
+                    <AddressForm
+                      address={editingAddress}
+                      onSubmit={editingAddress ? handleUpdateAddress : handleAddAddress}
+                      onCancel={handleCancelAddressForm}
+                    />
+                  </CardContent>
+                </Card>
+              )}
+            </Box>
+          )}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Confirm New Password <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="password"
-                value={passwordData.confirmPassword}
-                onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="bg-blue-600 text-white py-2 px-6 rounded-lg hover:bg-blue-700 transition-colors"
+          {/* Security Tab */}
+          {activeTab === 'security' && (
+            <Card 
+              elevation={3} 
+              sx={{ 
+                bgcolor: 'white',
+                borderRadius: 3,
+                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)'
+              }}
             >
-              Change Password
-            </button>
-          </form>
-        </div>
-      )}
-    </div>
+              <CardContent>
+                <Typography variant="h6" gutterBottom fontWeight="600">
+                  Change Password
+                </Typography>
+                <Box component="form" onSubmit={handleChangePassword} maxWidth="sm">
+                  <Grid container spacing={3}>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="Current Password"
+                        type="password"
+                        value={passwordData.currentPassword}
+                        onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                        required
+                        variant="outlined"
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="New Password"
+                        type="password"
+                        value={passwordData.newPassword}
+                        onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                        required
+                        helperText="Minimum 8 characters"
+                        inputProps={{ minLength: 8 }}
+                        variant="outlined"
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="Confirm New Password"
+                        type="password"
+                        value={passwordData.confirmPassword}
+                        onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                        required
+                        variant="outlined"
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Button
+                        type="submit"
+                        variant="contained"
+                        size="large"
+                        sx={{
+                          bgcolor: '#0c2025',
+                          '&:hover': {
+                            bgcolor: '#1a1a1a'
+                          },
+                          borderRadius: 2,
+                          textTransform: 'none',
+                          fontWeight: 600,
+                          py: 1.5
+                        }}
+                      >
+                        Change Password
+                      </Button>
+                    </Grid>
+                  </Grid>
+                </Box>
+              </CardContent>
+            </Card>
+          )}
+        </Box>
+      </Paper>
+    </Container>
+    </Box>
   );
 };
 
