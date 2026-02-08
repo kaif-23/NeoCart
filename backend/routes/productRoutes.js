@@ -1,7 +1,8 @@
 import express from 'express'
-import { addProduct, listProduct, removeProduct, updateInventory, initializeAllInventory, updateProduct } from '../controller/productController.js'
+import { addProduct, listProduct, removeProduct, updateInventory, initializeAllInventory, updateProduct, addReview, getProductReviews, updateReview, deleteReview } from '../controller/productController.js'
 import upload from '../middleware/multer.js'
 import adminAuth from "../middleware/adminAuth.js"
+import isAuth from '../middleware/isAuth.js'
 
 
 let productRoutes = express.Router()
@@ -25,6 +26,12 @@ productRoutes.post("/initialize-inventory", adminAuth, initializeAllInventory) /
 
 // Public routes (customers can access)
 productRoutes.get("/list", listProduct)
+
+// Review routes
+productRoutes.post("/review/:productId", isAuth, addReview) // Add review (logged in users only)
+productRoutes.get("/review/:productId", getProductReviews) // Get all reviews for a product (public)
+productRoutes.put("/review/:productId/:reviewId", isAuth, updateReview) // Update own review
+productRoutes.delete("/review/:productId/:reviewId", isAuth, deleteReview) // Delete own review
 
 
 

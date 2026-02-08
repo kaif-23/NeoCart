@@ -1,8 +1,9 @@
 import React, { useContext } from 'react'
 import { shopDataContext } from '../context/ShopContext'
 import { useNavigate } from 'react-router-dom'
+import { FaStar } from 'react-icons/fa'
 
-function Card({name , image , id , price, inventory}) {
+function Card({name , image , id , price, inventory, averageRating, totalReviews}) {
     let {currency} = useContext(shopDataContext)
     let navigate = useNavigate()
     
@@ -38,8 +39,8 @@ function Card({name , image , id , price, inventory}) {
     const stockStatus = getStockStatus()
     
   return (
-    <div className='w-[300px] max-w-[90%] h-[400px] bg-[#ffffff0a] backdrop:blur-lg rounded-lg hover:scale-[102%] flex items-start justify-start flex-col p-[10px] cursor-pointer border-[1px] border-[#80808049] relative' onClick={()=>navigate(`/productdetail/${id}`)}>
-        <img src={image} alt="" className='w-[100%] h-[80%] rounded-sm object-cover '/>
+    <div className='w-[300px] max-w-[90%] h-[420px] bg-[#ffffff0a] backdrop:blur-lg rounded-lg hover:scale-[102%] transition-transform flex items-start justify-start flex-col p-[10px] cursor-pointer border-[1px] border-[#80808049] hover:border-[#6060f5] relative' onClick={()=>navigate(`/productdetail/${id}`)}>
+        <img src={image} alt="" className='w-[100%] h-[70%] rounded-sm object-cover '/>
         
         {/* 📊 Stock badge */}
         {stockStatus && (
@@ -52,8 +53,19 @@ function Card({name , image , id , price, inventory}) {
           </div>
         )}
         
-        <div className='text-[#c3f6fa] text-[18px] py-[10px]'>{name}</div>
-        <div className='text-[#f3fafa] text-[14px] '>{currency} {price}</div>
+        <div className='text-[#c3f6fa] text-[18px] py-[8px] line-clamp-1'>{name}</div>
+        
+        {/* Rating display */}
+        {averageRating > 0 && (
+          <div className='flex items-center gap-1 mb-1'>
+            <FaStar className='text-[14px] fill-[#FFD700]' />
+            <span className='text-[#f3fafa] text-[14px]'>
+              {averageRating} {totalReviews && `(${totalReviews})`}
+            </span>
+          </div>
+        )}
+        
+        <div className='text-[#f3fafa] text-[16px] font-semibold'>{currency} {price}</div>
       
     </div>
   )

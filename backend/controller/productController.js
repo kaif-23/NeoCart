@@ -265,3 +265,182 @@ export const updateProduct = async (req, res) => {
         return res.status(500).json({ message: `UpdateProduct error ${error}` })
     }
 }
+
+// Add review to product
+export const addReview = async (req, res) => {
+    try {
+        const { productId } = req.params
+        const { rating, comment } = req.body
+        const userId = req.user._id
+        const userName = req.user.name
+
+        // Validate rating
+        if (!rating || rating < 1 || rating > 5) {
+            return res.status(400).json({ message: "Rating must be between 1 and 5" })
+        }
+
+        if (!comment || comment.trim().length === 0) {
+            return res.status(400).json({ message: "Comment is required" })
+        }
+
+        const product = await Product.findById(productId)
+        if (!product) {
+            return res.status(404).json({ message: "Product not found" })
+        }
+
+        // Check if user already reviewed this product
+        const existingReview = product.reviews.find(
+            review => review.userId.toString() === userId.toString()
+        )
+
+        if (existingReview) {
+            return res.status(400).json({ message: "You have already reviewed this product. You can edit your review instead." })
+        }
+
+        // Add new review
+        product.reviews.push({
+            userId,
+            userName,
+            rating: Number(rating),
+            comment: comment.trim(),
+            createdAt: new Date()
+        })
+
+        // Calculate new average rating
+        const totalRatings = product.reviews.reduce((sum, review) => sum + review.rating, 0)
+        product.averageRating = (totalRatings / product.reviews.length).toFixed(1)
+        product.totalReviews = product.reviews.length
+
+        await product.save()
+
+        return res.status(201).json({
+            message: "Review added successfully",
+            review: product.reviews[product.reviews.length - 1],
+            averageRating: product.averageRating,
+            totalReviews: product.totalReviews
+        })
+
+    } catch (error) {
+        console.log("AddReview error:", error)
+        return res.status(500).json({ message: `AddReview error ${error}` })
+    }
+}
+
+// Get reviews for a product
+export const getProductReviews = async (req, res) => {
+    try {
+        const { productId } = req.params
+
+        const product = await Product.findById(productId).select('reviews averageRating totalReviews')
+        if (!product) {
+            return res.status(404).json({ message: "Product not found" })
+        }
+
+        // Sort reviews by newest first
+        const sortedReviews = product.reviews.sort((a, b) =>
+            new Date(b.createdAt) - new Date(a.createdAt)
+        )
+
+        return res.status(200).json({
+            reviews: sortedReviews,
+            averageRating: product.averageRating,
+            totalReviews: product.totalReviews
+        })
+
+    } catch (error) {
+        console.log("GetProductReviews error:", error)
+        return res.status(500).json({ message: `GetProductReviews error ${error}` })
+    }
+}
+
+// Update user's own review
+export const updateReview = async (req, res) => {
+    try {
+        const { productId, reviewId } = req.params
+        const { rating, comment } = req.body
+        const userId = req.user._id
+
+        const product = await Product.findById(productId)
+        if (!product) {
+            return res.status(404).json({ message: "Product not found" })
+        }
+
+        const review = product.reviews.id(reviewId)
+        if (!review) {
+            return res.status(404).json({ message: "Review not found" })
+        }
+
+        // Check if user owns this review
+        if (review.userId.toString() !== userId.toString()) {
+            return res.status(403).json({ message: "You can only update your own reviews" })
+        }
+
+        // Update review
+        if (rating) review.rating = Number(rating)
+        if (comment) review.comment = comment.trim()
+
+        // Recalculate average rating
+        const totalRatings = product.reviews.reduce((sum, r) => sum + r.rating, 0)
+        product.averageRating = (totalRatings / product.reviews.length).toFixed(1)
+
+        await product.save()
+
+        return res.status(200).json({
+            message: "Review updated successfully",
+            review,
+            averageRating: product.averageRating
+        })
+
+    } catch (error) {
+        console.log("UpdateReview error:", error)
+        return res.status(500).json({ message: `UpdateReview error ${error}` })
+    }
+}
+
+// Delete user's own review
+export const deleteReview = async (req, res) => {
+    try {
+        const { productId, reviewId } = req.params
+        const userId = req.user._id
+
+        const product = await Product.findById(productId)
+        if (!product) {
+            return res.status(404).json({ message: "Product not found" })
+        }
+
+        const review = product.reviews.id(reviewId)
+        if (!review) {
+            return res.status(404).json({ message: "Review not found" })
+        }
+
+        // Check if user owns this review
+        if (review.userId.toString() !== userId.toString()) {
+            return res.status(403).json({ message: "You can only delete your own reviews" })
+        }
+
+        // Remove review
+        review.deleteOne()
+
+        // Recalculate average rating
+        if (product.reviews.length > 0) {
+            const totalRatings = product.reviews.reduce((sum, r) => sum + r.rating, 0)
+            product.averageRating = (totalRatings / product.reviews.length).toFixed(1)
+            product.totalReviews = product.reviews.length
+        } else {
+            product.averageRating = 0
+            product.totalReviews = 0
+        }
+
+        await product.save()
+
+        return res.status(200).json({
+            message: "Review deleted successfully",
+            averageRating: product.averageRating,
+            totalReviews: product.totalReviews
+        })
+
+    } catch (error) {
+        console.log("DeleteReview error:", error)
+        return res.status(500).json({ message: `DeleteReview error ${error}` })
+    }
+}
