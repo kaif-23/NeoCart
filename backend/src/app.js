@@ -93,6 +93,7 @@ const allowedOrigins = [
     "http://localhost:5175", // Development admin (alternate)
     "http://localhost:5176", // Development frontend (alternate)
 ].filter(Boolean); // Remove undefined values
+console.log("Allowed origins:", allowedOrigins);
 
 const corsOptions = {
     origin: function (origin, callback) {
