@@ -17,8 +17,7 @@ import sessionTimeout from "./middlewares/sessionTimeout.js";
 const app = express();
 
 // Trust proxy only when behind reverse proxy (Render, Heroku, Nginx, etc.)
-// Uncomment when deploying to production with load balancer
-// app.set('trust proxy', 1);
+ app.set('trust proxy', 1);
 
 // Security Middleware
 app.use(helmet({
