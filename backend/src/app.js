@@ -97,6 +97,7 @@ console.log("Allowed origins:", allowedOrigins);
 
 const corsOptions = {
     origin: function (origin, callback) {
+      console.log("Request origin:", origin);
         // In production, reject requests with no origin header
         if (!origin) {
             if (process.env.NODE_ENV === 'production') {
@@ -109,6 +110,7 @@ const corsOptions = {
         if (allowedOrigins.indexOf(origin) !== -1) {
             callback(null, true);
         } else {
+          console.log("BLOCKED origin:", origin);
             callback(new Error('Not allowed by CORS'));
         }
     },
