@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken'
 import User from '../models/userModel.js'
+import { getSession, isTokenBlacklisted } from "../utils/sessionStore.js";
 
 const isAuth = async (req, res, next) => {
     try {
@@ -18,6 +19,26 @@ const isAuth = async (req, res, next) => {
                 return res.status(401).json({ message: "Session expired. Please login again.", expired: true })
             }
             return res.status(401).json({ message: "Invalid token. Please login again." })
+        }
+
+        if (!decoded.sid || !decoded.jti) {
+            return res.status(401).json({ message: "Session invalid. Please login again." })
+        }
+
+        const [session, blacklisted] = await Promise.all([
+            getSession(decoded.sid),
+            isTokenBlacklisted(decoded.jti)
+        ])
+
+        const bypassBlacklist = req.refreshedTokenId && req.refreshedTokenId === decoded.jti;
+        const graceActive = session?.graceJti === decoded.jti && session.graceUntil && Date.now() < session.graceUntil;
+
+        if (blacklisted && !bypassBlacklist && !graceActive) {
+            return res.status(401).json({ message: "Session revoked. Please login again." })
+        }
+
+        if (!session || session.userId !== decoded.userId) {
+            return res.status(401).json({ message: "Session expired. Please login again." })
         }
 
         // Find user and check if active
