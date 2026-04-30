@@ -1,10 +1,19 @@
 import User from "../models/userModel.js";
 import validator from "validator"
 import bcrypt from "bcryptjs"
-import { genToken, genToken1 } from "../utils/token.js";
+import jwt from "jsonwebtoken";
+import { genToken } from "../utils/token.js";
 import crypto from "crypto";
 import { sendPasswordResetEmail } from "../config/emailService.js";
 import admin from "firebase-admin";
+import {
+    blacklistToken,
+    createSessionId,
+    createTokenId,
+    deleteSession,
+    saveSession,
+    SESSION_TTL_SECONDS,
+} from "../utils/sessionStore.js";
 
 // Lazy-initialize Firebase Admin SDK (env vars aren't loaded at import time)
 const getFirebaseAdmin = () => {
@@ -37,12 +46,23 @@ export const registration = async (req, res) => {
         let hashPassword = await bcrypt.hash(password, 10)
 
         const user = await User.create({ name, email, password: hashPassword })
-        let token = await genToken(user._id)
+        const sessionId = createSessionId();
+        const tokenId = createTokenId();
+
+        await saveSession(sessionId, {
+            userId: user._id.toString(),
+            role: user.role || "user",
+            ip: req.ip,
+            userAgent: req.get("user-agent") || "unknown",
+            createdAt: new Date().toISOString(),
+        });
+
+        let token = await genToken(user._id, { sessionId, jwtId: tokenId })
         res.cookie("token", token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: process.env.NODE_ENV === 'production' ? "none" : "lax",
-            maxAge: 8 * 60 * 60 * 1000
+            maxAge: SESSION_TTL_SECONDS * 1000
         })
         const { password: _, ...userWithoutPassword } = user.toObject();
         return res.status(201).json(userWithoutPassword)
@@ -64,12 +84,23 @@ export const login = async (req, res) => {
         if (!isMatch) {
             return res.status(400).json({ message: "Incorrect password" })
         }
-        let token = await genToken(user._id)
+        const sessionId = createSessionId();
+        const tokenId = createTokenId();
+
+        await saveSession(sessionId, {
+            userId: user._id.toString(),
+            role: user.role || "user",
+            ip: req.ip,
+            userAgent: req.get("user-agent") || "unknown",
+            createdAt: new Date().toISOString(),
+        });
+
+        let token = await genToken(user._id, { sessionId, jwtId: tokenId })
         res.cookie("token", token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: process.env.NODE_ENV === 'production' ? "none" : "lax",
-            maxAge: 8 * 60 * 60 * 1000
+            maxAge: SESSION_TTL_SECONDS * 1000
         })
         const { password: _, ...userWithoutPassword } = user.toObject();
         return res.status(201).json(userWithoutPassword)
@@ -82,11 +113,47 @@ export const login = async (req, res) => {
 
 export const logOut = async (req, res) => {
     try {
+        const token = req.cookies.token;
+        let invalidationFailed = false;
+
+        if (token) {
+            let decoded = null;
+            try {
+                decoded = jwt.verify(token, process.env.JWT_SECRET, {
+                    ignoreExpiration: true,
+                });
+            } catch (error) {
+                console.error("logOut token parse error:", error);
+            }
+
+            if (decoded) {
+                const now = Math.floor(Date.now() / 1000);
+                const ttlSeconds = decoded.exp ? Math.max(decoded.exp - now, 0) : 0;
+
+                try {
+                    if (decoded.sid) {
+                        await deleteSession(decoded.sid);
+                    }
+                    if (decoded.jti) {
+                        await blacklistToken(decoded.jti, ttlSeconds);
+                    }
+                } catch (error) {
+                    invalidationFailed = true;
+                    console.error("logOut token invalidation error:", error);
+                }
+            }
+        }
+
         res.clearCookie("token", {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: process.env.NODE_ENV === 'production' ? "none" : "lax"
         })
+
+        if (invalidationFailed) {
+            return res.status(503).json({ message: "Logout failed. Please try again." })
+        }
+
         return res.status(200).json({ message: "logOut successful" })
     } catch (error) {
         console.error("logOut error:", error)
@@ -126,12 +193,23 @@ export const googleLogin = async (req, res) => {
             })
         }
 
-        let token = await genToken(user._id)
+        const sessionId = createSessionId();
+        const tokenId = createTokenId();
+
+        await saveSession(sessionId, {
+            userId: user._id.toString(),
+            role: user.role || "user",
+            ip: req.ip,
+            userAgent: req.get("user-agent") || "unknown",
+            createdAt: new Date().toISOString(),
+        });
+
+        let token = await genToken(user._id, { sessionId, jwtId: tokenId })
         res.cookie("token", token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: process.env.NODE_ENV === 'production' ? "none" : "lax",
-            maxAge: 8 * 60 * 60 * 1000
+            maxAge: SESSION_TTL_SECONDS * 1000
         })
         const { password: _, ...userWithoutPassword } = user.toObject();
         return res.status(200).json(userWithoutPassword)
@@ -173,12 +251,23 @@ export const adminLogin = async (req, res) => {
         user.lastLogin = new Date()
         await user.save()
 
-        let token = await genToken(user._id)
+        const sessionId = createSessionId();
+        const tokenId = createTokenId();
+
+        await saveSession(sessionId, {
+            userId: user._id.toString(),
+            role: user.role || "admin",
+            ip: req.ip,
+            userAgent: req.get("user-agent") || "unknown",
+            createdAt: new Date().toISOString(),
+        });
+
+        let token = await genToken(user._id, { sessionId, jwtId: tokenId })
         res.cookie("adminToken", token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: process.env.NODE_ENV === 'production' ? "none" : "lax",
-            maxAge: 8 * 60 * 60 * 1000
+            maxAge: SESSION_TTL_SECONDS * 1000
         })
 
         return res.status(200).json({
@@ -199,11 +288,47 @@ export const adminLogin = async (req, res) => {
 
 export const adminLogOut = async (req, res) => {
     try {
+        const token = req.cookies.adminToken;
+        let invalidationFailed = false;
+
+        if (token) {
+            let decoded = null;
+            try {
+                decoded = jwt.verify(token, process.env.JWT_SECRET, {
+                    ignoreExpiration: true,
+                });
+            } catch (error) {
+                console.error("Admin logout token parse error:", error);
+            }
+
+            if (decoded) {
+                const now = Math.floor(Date.now() / 1000);
+                const ttlSeconds = decoded.exp ? Math.max(decoded.exp - now, 0) : 0;
+
+                try {
+                    if (decoded.sid) {
+                        await deleteSession(decoded.sid);
+                    }
+                    if (decoded.jti) {
+                        await blacklistToken(decoded.jti, ttlSeconds);
+                    }
+                } catch (error) {
+                    invalidationFailed = true;
+                    console.error("Admin logout token invalidation error:", error);
+                }
+            }
+        }
+
         res.clearCookie("adminToken", {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: process.env.NODE_ENV === 'production' ? "none" : "lax"
         })
+
+        if (invalidationFailed) {
+            return res.status(503).json({ message: "Logout failed. Please try again." })
+        }
+
         return res.status(200).json({ message: "Admin logout successful" })
     } catch (error) {
         console.error("Admin logout error:", error)
