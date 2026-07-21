@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { shopDataContext } from '../context/ShopContext'
+import { authDataContext } from '../context/AuthContext'
 import { FaStar } from "react-icons/fa";
 import { Minus, Plus } from 'lucide-react';
 import RelatedProduct from '@/components/product/RelatedProduct';
@@ -11,7 +12,8 @@ import { toast } from 'sonner';
 
 function ProductDetail() {
     let {productId} = useParams()
-    let {products,currency ,addtoCart ,loading, cartItem, updateQuantity} = useContext(shopDataContext)
+    let {currency ,addtoCart ,loading, cartItem, updateQuantity} = useContext(shopDataContext)
+    let {serverUrl} = useContext(authDataContext) || { serverUrl: 'http://localhost:3000' }
     let [productData,setProductData] = useState(false)
     let [activeTab, setActiveTab] = useState('description') // New state for tabs
 
@@ -33,14 +35,23 @@ function ProductDetail() {
 
 
    const fetchProductData = async () => {
-    const foundProduct = products.find((item) => item._id === productId)
-    if (foundProduct) {
-      setProductData(foundProduct)
-      setImage1(foundProduct.image1)
-      setImage2(foundProduct.image2)
-      setImage3(foundProduct.image3)
-      setImage4(foundProduct.image4)
-      setImage(foundProduct.image1)
+    try {
+        const res = await fetch(`${serverUrl}/api/product/single/${productId}`);
+        if (!res.ok) {
+            console.error("Product not found");
+            return;
+        }
+        const foundProduct = await res.json();
+        if (foundProduct && Array.isArray(foundProduct.sizes)) {
+          setProductData(foundProduct)
+          setImage1(foundProduct.image1)
+          setImage2(foundProduct.image2)
+          setImage3(foundProduct.image3)
+          setImage4(foundProduct.image4)
+          setImage(foundProduct.image1)
+        }
+    } catch (error) {
+        console.error("Error fetching single product:", error)
     }
   }
 
@@ -49,7 +60,7 @@ function ProductDetail() {
     setSize('')
     setQuantity(1)
     setAddedToCart(false)
-  }, [productId, products])
+  }, [productId, serverUrl])
   return productData ? (
     <div className='w-full min-h-screen bg-gradient-to-l from-[#141414] to-[#0c2025] pb-10'>
         <div className='w-full max-w-[1400px] mx-auto px-4 md:px-8 lg:px-12 pt-20 md:pt-24 lg:pt-28'>

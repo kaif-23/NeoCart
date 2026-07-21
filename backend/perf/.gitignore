@@ -1,0 +1,7 @@
+# Ignore all benchmark output files in this directory
+*
+!.gitignore
+!after-summary.md
+!baseline-summary.md
+!RESULTS.md
+!RENDER_REDIS_ANALYSIS.md

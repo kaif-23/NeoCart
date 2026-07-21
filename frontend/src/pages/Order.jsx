@@ -20,41 +20,37 @@ const formatIST = (date) => {
 
 function Order() {
     let [orderData,setOrderData] = useState([])
-    let {currency, products} = useContext(shopDataContext)
+    let {currency} = useContext(shopDataContext)
     let {serverUrl} = useContext(authDataContext)
     const navigate = useNavigate()
 
     const getProductImage = (item) => {
-        // Try saved image first, then look up from products list
-        if (item.image) return item.image
+        if (item.image) return Array.isArray(item.image) ? item.image[0] : item.image
         if (item.image1) return item.image1
-        const product = products.find(p => p._id === (item.productId || item._id))
-        return product?.image1 || ''
+        return ''
     }
 
     const getProductId = (item) => {
         if (item.productId) return item.productId
-        // Old orders stored _id from the product
-        if (item._id) {
-            const product = products.find(p => p._id === item._id)
-            if (product) return item._id
-        }
+        if (item._id) return item._id
         return null
     }
 
     const loadOrderData = async () => {
        try {
       const result = await axios.post(serverUrl + '/api/order/userorder',{},{withCredentials:true})
-      if(result.data){
+      if(result.data && Array.isArray(result.data)){
         let allOrdersItem = []
         result.data.map((order)=>{
-          order.items.map((item)=>{
+          if (Array.isArray(order.items)) {
+            order.items.map((item)=>{
             item['status'] = order.status
             item['payment'] = order.payment
             item['paymentMethod'] = order.paymentMethod
             item['date'] = order.date
             allOrdersItem.push(item)
           })
+          }
         })
         setOrderData(allOrdersItem.reverse())
       }

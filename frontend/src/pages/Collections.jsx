@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { authDataContext } from '../context/AuthContext';
 import { FaChevronRight, FaChevronDown } from "react-icons/fa";
 import Title from '@/components/common/Title';
 import { shopDataContext } from '../context/ShopContext';
@@ -9,11 +9,17 @@ import Footer from '@/components/layout/Footer';
 function Collections() {
 
     let [showFilter,setShowFilter] = useState(false)
-    let {products,search,showSearch} = useContext(shopDataContext)
+    let {search,showSearch} = useContext(shopDataContext)
+    let {serverUrl} = useContext(authDataContext) || { serverUrl: 'http://localhost:3000' } // Fallback if missing
     let [filterProduct,setFilterProduct] = useState([])
     let [category,setCaterory] = useState([])
     let [subCategory,setSubCaterory] = useState([])
     let [sortType,SetSortType] = useState("relavent")
+    
+    // Pagination state
+    let [currentPage, setCurrentPage] = useState(1)
+    let [totalPages, setTotalPages] = useState(1)
+    let [loading, setLoading] = useState(false)
 
     const toggleCategory = (e) =>{
         if(category.includes(e.target.value)){
@@ -31,38 +37,56 @@ function Collections() {
         }
     }
 
-    const applyFilter = ()=>{
-        let productCopy = products.slice()
-        if(showSearch && search){
-            productCopy = productCopy.filter(item => item.name.toLowerCase().includes(search.toLowerCase()))
+    const fetchPaginatedProducts = async () => {
+        setLoading(true)
+        try {
+            // Build query params
+            const params = new URLSearchParams()
+            params.append('page', currentPage)
+            params.append('limit', 20)
+            
+            if (category.length > 0) params.append('category', category.join(','))
+            if (subCategory.length > 0) params.append('subCategory', subCategory.join(','))
+            if (sortType !== 'relavent') params.append('sort', sortType)
+            
+            const url = `${serverUrl}/api/product/list?${params.toString()}`
+            const res = await fetch(url)
+            const data = await res.json()
+            
+            if (data && Array.isArray(data.products)) {
+                // If there's an active search, filter locally for now (or backend search)
+                // Actually, backend listProduct doesn't filter by text search yet.
+                let list = data.products
+                if (showSearch && search) {
+                    list = list.filter(item => item.name.toLowerCase().includes(search.toLowerCase()))
+                }
+                setFilterProduct(list)
+                setTotalPages(data.totalPages)
+            } else {
+                // Fallback if backend returns full array without pagination wrapper
+                let list = Array.isArray(data) ? data : []
+                if (showSearch && search) {
+                    list = list.filter(item => item.name.toLowerCase().includes(search.toLowerCase()))
+                }
+                setFilterProduct(list)
+                setTotalPages(1)
+            }
+        } catch (error) {
+            console.error("Error fetching products:", error)
+        } finally {
+            setLoading(false)
         }
-        if(category.length > 0) {
-            productCopy = productCopy.filter(item => category.includes(item.category))
-        }
-        if(subCategory.length > 0) {
-            productCopy = productCopy.filter(item => subCategory.includes(item.subCategory))
-        }
-        setFilterProduct(productCopy)
     }
 
-    const sortProducts = (e)=>{
-        let fbCopy = filterProduct.slice()
-        switch(sortType){
-         case 'low-high':
-            setFilterProduct(fbCopy.sort((a,b)=>(a.price - b.price)))
-            break;
-         case 'high-low':
-            setFilterProduct(fbCopy.sort((a,b)=>(b.price - a.price)))
-            break;
-        default:
-            applyFilter()
-            break;
-        }
-    }
+    // Reset to page 1 when filters change
+    useEffect(() => {
+        setCurrentPage(1)
+    }, [category, subCategory, sortType, search, showSearch])
 
-    useEffect(()=>{ sortProducts() },[sortType])
-    useEffect(()=>{ setFilterProduct(products) },[products])
-    useEffect(()=>{ applyFilter() },[category,subCategory,search,showSearch])
+    // Fetch products when page or filters change
+    useEffect(() => {
+        fetchPaginatedProducts()
+    }, [currentPage, category, subCategory, sortType, search, showSearch])
 
   return (
     <div className='w-full min-h-screen bg-gradient-to-l from-[#141414] to-[#0c2025] flex flex-col md:flex-row pt-[70px] overflow-x-hidden pb-[80px] md:pb-0'>
@@ -120,20 +144,15 @@ function Collections() {
             </select>
         </div>
 
-        <motion.div
-            layout
-            className='w-full grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5'
-        >
-            <AnimatePresence>
-                {filterProduct.map((item, index) => (
-                    <motion.div
-                        key={item._id}
-                        layout
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                        transition={{ duration: 0.3, delay: Math.min(index * 0.03, 0.3) }}
-                    >
+        {loading ? (
+            <div className='w-full h-[50vh] flex flex-col justify-center items-center'>
+                <div className='w-12 h-12 border-4 border-[#333] border-t-[#0ea5e9] rounded-full animate-spin'></div>
+                <p className='text-gray-400 mt-4 text-sm'>Loading collections...</p>
+            </div>
+        ) : (
+            <div className='w-full grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5'>
+                {filterProduct.map((item) => (
+                    <div key={item._id}>
                         <ProductCard
                             id={item._id}
                             name={item.name}
@@ -143,12 +162,51 @@ function Collections() {
                             averageRating={item.averageRating}
                             totalReviews={item.totalReviews}
                         />
-                    </motion.div>
+                    </div>
                 ))}
-            </AnimatePresence>
-        </motion.div>
+            </div>
+        )}
 
-        {filterProduct.length === 0 && (
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+            <div className='w-full flex justify-center items-center gap-4 mt-12 mb-8'>
+                <button 
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1 || loading}
+                    className='px-4 py-2 bg-[#ffffff08] border border-[#80808030] rounded-lg text-white disabled:opacity-50 hover:border-[#0ea5e9] transition-colors'
+                >
+                    Previous
+                </button>
+                <div className='flex gap-2'>
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        // Logic to show a sliding window of 5 pages max
+                        let pageNum = i + 1;
+                        if (totalPages > 5 && currentPage > 3) {
+                            pageNum = currentPage - 3 + i + (currentPage + 2 > totalPages ? totalPages - currentPage - 2 : 0);
+                        }
+                        return (
+                            <button
+                                key={pageNum}
+                                onClick={() => setCurrentPage(pageNum)}
+                                disabled={loading}
+                                className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors disabled:opacity-50 ${currentPage === pageNum ? 'bg-[#0ea5e9] text-white' : 'bg-[#ffffff08] border border-[#80808030] text-gray-300 hover:border-[#0ea5e9]'}`}
+                            >
+                                {pageNum}
+                            </button>
+                        );
+                    })}
+                </div>
+                <button 
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages || loading}
+                    className='px-4 py-2 bg-[#ffffff08] border border-[#80808030] rounded-lg text-white disabled:opacity-50 hover:border-[#0ea5e9] transition-colors'
+                >
+                    Next
+                </button>
+            </div>
+        )}
+
+        {!loading && filterProduct.length === 0 && (
             <div className='w-full py-20 flex flex-col items-center justify-center'>
                 <p className='text-gray-500 text-xl'>No products found</p>
                 <p className='text-gray-600 text-sm mt-2'>Try adjusting your filters</p>

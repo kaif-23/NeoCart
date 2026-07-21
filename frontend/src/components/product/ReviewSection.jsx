@@ -29,7 +29,7 @@ function ReviewSection({ productId }) {
         try {
             setLoading(true)
             const response = await axios.get(`${serverUrl}/api/product/review/${productId}`)
-            setReviews(response.data.reviews)
+            setReviews(response.data.reviews || [])
             setAverageRating(response.data.averageRating)
             setTotalReviews(response.data.totalReviews)
         } catch (error) {

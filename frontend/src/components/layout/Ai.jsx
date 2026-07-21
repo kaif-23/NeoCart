@@ -17,13 +17,14 @@ window.speechSynthesis.speak(utterence)
 
 
   const speechRecognition=window.SpeechRecognition || window.webkitSpeechRecognition
-  const recognition = new speechRecognition()
+  const recognition = speechRecognition ? new speechRecognition() : null;
    if(!recognition){
-    console.log("not supported")
+    console.log("Speech recognition not supported")
   }
 
-  recognition.onresult = (e)=>{
-    const transcript = e.results[0][0].transcript.trim();
+  if (recognition) {
+      recognition.onresult = (e)=>{
+        const transcript = e.results[0][0].transcript.trim();
  if(transcript.toLowerCase().includes("search") && transcript.toLowerCase().includes("open") && !showSearch){
       speak("opening search")
       setShowSearch(true) 
@@ -69,11 +70,15 @@ window.speechSynthesis.speak(utterence)
     }
 
   }
-  recognition.onend=()=>{
-   setActiveAi(false)
+  } // closing brace for if (recognition)
+  if (recognition) {
+    recognition.onend=()=>{
+     setActiveAi(false)
+    }
   }
   return (
-    <div className='fixed lg:bottom-[20px] md:bottom-[40px] bottom-[80px] left-[2%] hidden md:block' onClick={()=>{recognition.start();
+    <div className='fixed lg:bottom-[20px] md:bottom-[40px] bottom-[80px] left-[2%] hidden md:block' onClick={()=>{
+    if (recognition) recognition.start();
     openingSound.play()
     setActiveAi(true)
     }}>

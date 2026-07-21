@@ -12,7 +12,7 @@ import Loading from '@/components/common/Loading'
 function PlaceOrder() {
     let [method,setMethod] = useState('cod')
     let navigate = useNavigate()
-    const {cartItem , setCartItem , getCartAmount , delivery_fee , products , getProducts } = useContext(shopDataContext)
+    const {cartItem , setCartItem , getCartAmount , delivery_fee , cartTotals } = useContext(shopDataContext)
     let {serverUrl} = useContext(authDataContext)
     let [loading ,setLoading] = useState(false)
     let [stockIssues, setStockIssues] = useState([])
@@ -91,55 +91,37 @@ function PlaceOrder() {
     const validateStock = () => {
         const issues = []
         
-        for(const itemId in cartItem){
-            for(const size in cartItem[itemId]){
-                if(cartItem[itemId][size] > 0){
-                    const product = products.find(p => p._id === itemId)
-                    
-                    if(!product){
-                        issues.push({
-                            productId: itemId,
-                            productName: 'Unknown Product',
-                            size: size,
-                            requestedQty: cartItem[itemId][size],
-                            availableStock: 0,
-                            issue: 'Product not found'
-                        })
-                        continue
-                    }
-                    
-                    // Check if product has inventory system
-                    if(!product.inventory || !product.inventory[size]){
-                        // Old products without inventory - assume available
-                        continue
-                    }
-                    
-                    const sizeInventory = product.inventory[size]
-                    const requestedQty = cartItem[itemId][size]
-                    
-                    // Check if size is available
-                    if(!sizeInventory.available || sizeInventory.stock === 0){
-                        issues.push({
-                            productId: itemId,
-                            productName: product.name,
-                            size: size,
-                            requestedQty: requestedQty,
-                            availableStock: 0,
-                            issue: 'Out of stock'
-                        })
-                    }
-                    // Check if requested quantity exceeds available stock
-                    else if(requestedQty > sizeInventory.stock){
-                        issues.push({
-                            productId: itemId,
-                            productName: product.name,
-                            size: size,
-                            requestedQty: requestedQty,
-                            availableStock: sizeInventory.stock,
-                            issue: 'Insufficient stock'
-                        })
-                    }
-                }
+        for (const item of (cartTotals.lineItems || [])) {
+            // Check if product has inventory system
+            if(!item.inventory || !item.inventory[item.size]){
+                // Old products without inventory - assume available
+                continue
+            }
+            
+            const sizeInventory = item.inventory[item.size]
+            const requestedQty = item.quantity
+            
+            // Check if size is available
+            if(!sizeInventory.available || sizeInventory.stock === 0){
+                issues.push({
+                    productId: item.productId,
+                    productName: item.name,
+                    size: item.size,
+                    requestedQty: requestedQty,
+                    availableStock: 0,
+                    issue: 'Out of stock'
+                })
+            }
+            // Check if requested quantity exceeds available stock
+            else if(requestedQty > sizeInventory.stock){
+                issues.push({
+                    productId: item.productId,
+                    productName: item.name,
+                    size: item.size,
+                    requestedQty: requestedQty,
+                    availableStock: sizeInventory.stock,
+                    issue: 'Insufficient stock'
+                })
             }
         }
         
@@ -153,7 +135,7 @@ function PlaceOrder() {
         if(issues.length > 0){
             setShowStockWarning(true)
         }
-    }, [cartItem, products])
+    }, [cartTotals])
 
     const initPay = (order) => {
         const options = {
@@ -171,7 +153,6 @@ function PlaceOrder() {
                     if (data) {
                         navigate("/order")
                         setCartItem({})
-                        await getProducts() // Refresh products to show updated stock
                         toast.success("Payment Successful")
                     }
                 } catch (error) {
@@ -210,24 +191,14 @@ function PlaceOrder() {
         
         setLoading(true)
         try {
-            let orderItems = []
-            for(const items in cartItem){
-                for(const item in cartItem[items]){
-                    if(cartItem[items][item] > 0){
-                        const product = products.find(product => product._id === items)
-                        if(product){
-                            orderItems.push({
-                                productId: product._id,
-                                name: product.name,
-                                price: product.price,
-                                image: product.image1,
-                                size: item,
-                                quantity: cartItem[items][item]
-                            })
-                        }
-                    }
-                }
-            }
+            let orderItems = cartTotals.lineItems.map(item => ({
+                productId: item.productId,
+                name: item.name,
+                price: item.price,
+                image: item.image && item.image.length > 0 ? item.image[0] : '',
+                size: item.size,
+                quantity: item.quantity
+            }))
             let orderData = {
                 address: formData,
                 items: orderItems,
@@ -240,7 +211,6 @@ function PlaceOrder() {
                     console.log(result.data)
                     if(result.data){
                         setCartItem({})
-                        await getProducts() // Refresh products to show updated stock
                         toast.success("Order Placed")
                         navigate("/order")
                         setLoading(false)

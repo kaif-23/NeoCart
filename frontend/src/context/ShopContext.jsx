@@ -6,8 +6,6 @@ import { toast } from 'sonner'
 
  export const shopDataContext = createContext()
 function ShopContext({children}) {
-
-    let [products,setProducts] = useState([])
     let [search,setSearch] = useState('')
     let {userData} = useContext(userDataContext)
     let [showSearch,setShowSearch] = useState(false)
@@ -16,19 +14,9 @@ function ShopContext({children}) {
     let [loading,setLoading] = useState(false)
     let [searchResults, setSearchResults] = useState([])
     let [searchLoading, setSearchLoading] = useState(false)
+    let [cartTotals, setCartTotals] = useState({ subTotal: 0, grandTotal: 0, amount: 0, lineItems: [] });
     let currency = '₹';
     let delivery_fee = 40;
-
-    const getProducts = async () => {
-        try {
-            let result = await axios.get(serverUrl + "/api/product/list")
-            console.log(result.data)
-            setProducts(result.data)
-        } catch (error) {
-            console.log(error)
-        }
-        
-    }
 
 
     const addtoCart = async (itemId , size) => {
@@ -118,26 +106,10 @@ function ShopContext({children}) {
     }
 
     const getCartAmount = () => {
-      let totalAmount = 0;
-      for (const items in cartItem) {
-        let itemInfo = products.find((product) => product._id === items);
-        if (itemInfo) {
-          for (const item in cartItem[items]) {
-            try {
-              if (cartItem[items][item] > 0) {
-                totalAmount += itemInfo.price * cartItem[items][item];
-              }
-            } catch (error) {
-              console.log("Error calculating cart amount:", error)
-            }
-          }
-        }
-      }
-      return totalAmount
+      return cartTotals.subTotal || 0;
     }
 
-    const searchProducts = useCallback((query) => {
-      // Validate query - must have at least 2 non-space characters
+    const searchProducts = useCallback(async (query) => {
       const trimmedQuery = query.trim()
       if (!trimmedQuery || trimmedQuery.length < 2) {
         setSearchResults([])
@@ -146,33 +118,16 @@ function ShopContext({children}) {
       }
 
       setSearchLoading(true)
-      
-      // Debounced search with proper delay
-      const filtered = products.filter(product =>
-        product.name.toLowerCase().includes(trimmedQuery.toLowerCase()) ||
-        product.category.toLowerCase().includes(trimmedQuery.toLowerCase()) ||
-        product.subCategory.toLowerCase().includes(trimmedQuery.toLowerCase())
-      )
-      
-      // Small delay to show loading state
-      setTimeout(() => {
-        setSearchResults(filtered.slice(0, 8)) // Limit to 8 results
+      try {
+        const result = await axios.get(serverUrl + "/api/product/search?q=" + encodeURIComponent(trimmedQuery))
+        setSearchResults(result.data)
+      } catch (err) {
+        console.error("Search error", err)
+      } finally {
         setSearchLoading(false)
-      }, 150)
-    }, [products])
-
-    useEffect(() => {
-      const fetchProducts = async () => {
-        try {
-          let result = await axios.get(serverUrl + "/api/product/list")
-          console.log(result.data)
-          setProducts(result.data)
-        } catch (error) {
-          console.log(error)
-        }
       }
-      fetchProducts()
-    }, [])
+    }, [serverUrl])
+
 
     useEffect(() => {
       if (userData) {
@@ -188,9 +143,35 @@ function ShopContext({children}) {
       }
     },[userData])
 
+    // Fetch live cart totals from backend whenever cartItem changes
+    useEffect(() => {
+      const fetchCartTotals = async () => {
+        // If cart is completely empty, don't ping backend
+        if (Object.keys(cartItem).length === 0) {
+          setCartTotals({ subTotal: 0, grandTotal: 0, amount: 0, lineItems: [] });
+          return;
+        }
+        try {
+          // Pass the local cartItem state so guests can get totals too
+          const result = await axios.post(serverUrl + '/api/cart/totals', 
+            { cartData: cartItem }, 
+            { withCredentials: true }
+          );
+          if (result.data && Array.isArray(result.data.lineItems)) {
+            setCartTotals(result.data);
+          } else {
+            setCartTotals({ subTotal: 0, grandTotal: 0, amount: 0, lineItems: [] });
+          }
+        } catch (error) {
+          console.error("fetchCartTotals error:", error);
+        }
+      };
+      fetchCartTotals();
+    }, [cartItem, serverUrl]);
+
 
     let value = {
-      products, currency , delivery_fee, getProducts, search, setSearch, showSearch, setShowSearch, cartItem, addtoCart, getCartCount, setCartItem, updateQuantity, getCartAmount, loading, searchProducts, searchResults, searchLoading
+      currency , delivery_fee, search, setSearch, showSearch, setShowSearch, cartItem, addtoCart, getCartCount, setCartItem, updateQuantity, getCartAmount, cartTotals, loading, searchProducts, searchResults, searchLoading
     }
   return (
     <div>

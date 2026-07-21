@@ -2,7 +2,9 @@ import User from "../models/userModel.js"
 
 export const getCurrentUser = async (req, res) => {
     try {
-        let user = await User.findById(req.userId).select("-password")
+        // req.user is already populated by isAuth middleware (User.findOne with -password).
+        // Re-querying the DB here would be a redundant round-trip — use req.user directly.
+        const user = req.user;
         if (!user) {
             return res.status(404).json({ message: "user is not found" })
         }

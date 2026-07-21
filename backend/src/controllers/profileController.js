@@ -2,6 +2,7 @@ import User from '../models/userModel.js';
 import cloudinary, { uploadOnCloudinary } from '../config/cloudinary.js';
 import bcrypt from 'bcryptjs';
 import fs from 'fs';
+import { cacheDel } from '../utils/cache.js';
 
 // Get user profile
 export const getProfile = async (req, res) => {
@@ -38,6 +39,7 @@ export const updateProfile = async (req, res) => {
         if (phone) user.phone = phone.trim();
 
         await user.save();
+        await cacheDel(`user:${req.userId}`);
 
         const updatedUser = await User.findById(req.userId).select('-password -resetPasswordToken -resetPasswordExpires');
 
@@ -78,6 +80,7 @@ export const uploadProfileImage = async (req, res) => {
 
         user.profileImage = imageUrl;
         await user.save();
+        await cacheDel(`user:${req.userId}`);
 
         res.json({
             success: true,
@@ -126,6 +129,7 @@ export const changePassword = async (req, res) => {
         user.resetPasswordExpires = undefined;
 
         await user.save();
+        await cacheDel(`user:${req.userId}`);
 
         res.json({ success: true, message: 'Password changed successfully' });
     } catch (error) {

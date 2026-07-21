@@ -14,6 +14,7 @@ import {
     saveSession,
     SESSION_TTL_SECONDS,
 } from "../utils/sessionStore.js";
+import { cacheDel } from "../utils/cache.js";
 
 // Lazy-initialize Firebase Admin SDK (env vars aren't loaded at import time)
 const getFirebaseAdmin = () => {
@@ -136,6 +137,10 @@ export const logOut = async (req, res) => {
                     }
                     if (decoded.jti) {
                         await blacklistToken(decoded.jti, ttlSeconds);
+                    }
+                    // Belt-and-suspenders: clear user cache on logout.
+                    if (decoded.userId) {
+                        await cacheDel(`user:${decoded.userId}`);
                     }
                 } catch (error) {
                     invalidationFailed = true;
@@ -311,6 +316,10 @@ export const adminLogOut = async (req, res) => {
                     }
                     if (decoded.jti) {
                         await blacklistToken(decoded.jti, ttlSeconds);
+                    }
+                    // Belt-and-suspenders: clear user cache on admin logout.
+                    if (decoded.userId) {
+                        await cacheDel(`user:${decoded.userId}`);
                     }
                 } catch (error) {
                     invalidationFailed = true;

@@ -1,5 +1,9 @@
 import { uploadOnCloudinary } from "../config/cloudinary.js"
 import Product from "../models/productModel.js"
+import { cacheGet, cacheSet, cacheDel } from "../utils/cache.js"
+
+const PRODUCTS_CACHE_KEY = "products:list";
+const PRODUCTS_CACHE_TTL  = 300; // 5 minutes
 
 
 export const addProduct = async (req, res) => {
@@ -39,6 +43,9 @@ export const addProduct = async (req, res) => {
 
         const product = await Product.create(productData)
 
+        // Invalidate cached list so the next read picks up the new product.
+        await cacheDel(PRODUCTS_CACHE_KEY);
+
         return res.status(201).json(product)
 
     } catch (error) {
@@ -50,6 +57,49 @@ export const addProduct = async (req, res) => {
 
 export const listProduct = async (req, res) => {
     try {
+        // --- Cache check ---
+        // --- Filter and Sort Helper ---
+        const filterAndSort = (productsList, query) => {
+            let filtered = [...productsList];
+            
+            if (query.category) {
+                const categories = query.category.split(',');
+                filtered = filtered.filter(p => categories.includes(p.category));
+            }
+            if (query.subCategory) {
+                const subCategories = query.subCategory.split(',');
+                filtered = filtered.filter(p => subCategories.includes(p.subCategory));
+            }
+            
+            if (query.sort) {
+                if (query.sort === 'low-high') filtered.sort((a,b) => a.price - b.price);
+                if (query.sort === 'high-low') filtered.sort((a,b) => b.price - a.price);
+            }
+            
+            return filtered;
+        };
+
+        const cached = await cacheGet(PRODUCTS_CACHE_KEY);
+        if (cached) {
+            const processedList = filterAndSort(cached, req.query);
+            const page = parseInt(req.query.page);
+            const limit = parseInt(req.query.limit) || 20;
+
+            if (page && page > 0) {
+                const startIndex = (page - 1) * limit;
+                const endIndex = page * limit;
+                const paginatedProducts = processedList.slice(startIndex, endIndex);
+                return res.status(200).json({
+                    products: paginatedProducts,
+                    totalPages: Math.ceil(processedList.length / limit),
+                    currentPage: page,
+                    totalProducts: processedList.length
+                });
+            }
+            return res.status(200).json(processedList);
+        }
+
+        // --- Cache miss: query Mongo and populate cache ---
         const products = await Product.find({}).lean();
 
         const productsWithConvertedInventory = products.map(product => {
@@ -59,18 +109,121 @@ export const listProduct = async (req, res) => {
             return product;
         });
 
-        return res.status(200).json(productsWithConvertedInventory)
+        await cacheSet(PRODUCTS_CACHE_KEY, productsWithConvertedInventory, PRODUCTS_CACHE_TTL);
+
+        // --- Pagination Logic (In-Memory from Cache) ---
+        const processedList = filterAndSort(productsWithConvertedInventory, req.query);
+        const page = parseInt(req.query.page);
+        const limit = parseInt(req.query.limit) || 20;
+
+        if (page && page > 0) {
+            const startIndex = (page - 1) * limit;
+            const endIndex = page * limit;
+            const paginatedProducts = processedList.slice(startIndex, endIndex);
+            return res.status(200).json({
+                products: paginatedProducts,
+                totalPages: Math.ceil(processedList.length / limit),
+                currentPage: page,
+                totalProducts: processedList.length
+            });
+        }
+
+        // Return full list if no pagination requested (backward compatibility)
+        return res.status(200).json(processedList);
 
     } catch (error) {
-        console.log("ListProduct error")
-        return res.status(500).json({ message: "Failed to list products" })
+        console.log("ListProduct error:", error);
+        return res.status(500).json({ message: "Failed to list products" });
     }
 }
+
+// --- New Endpoints for Frontend Refactor ---
+
+// Helper function to get the full product list (cached or Mongo)
+const getFullProductList = async () => {
+    const cached = await cacheGet(PRODUCTS_CACHE_KEY);
+    if (cached) return cached;
+
+    const products = await Product.find({}).lean();
+    const productsWithConvertedInventory = products.map(product => {
+        if (product.inventory && typeof product.inventory === 'object') {
+            return product;
+        }
+        return product;
+    });
+
+    await cacheSet(PRODUCTS_CACHE_KEY, productsWithConvertedInventory, PRODUCTS_CACHE_TTL);
+    return productsWithConvertedInventory;
+};
+
+export const getProductById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const products = await getFullProductList();
+        const product = products.find(p => p._id.toString() === id);
+        
+        if (!product) return res.status(404).json({ message: "Product not found" });
+        return res.status(200).json(product);
+    } catch (error) {
+        console.log("GetProductById error:", error);
+        return res.status(500).json({ message: "Failed to get product" });
+    }
+};
+
+export const getBestSellers = async (req, res) => {
+    try {
+        const limit = parseInt(req.query.limit) || 5;
+        const products = await getFullProductList();
+        const bestSellers = products.filter(p => p.bestseller === true).slice(0, limit);
+        return res.status(200).json(bestSellers);
+    } catch (error) {
+        console.log("GetBestSellers error:", error);
+        return res.status(500).json({ message: "Failed to get best sellers" });
+    }
+};
+
+export const getLatestProducts = async (req, res) => {
+    try {
+        const limit = parseInt(req.query.limit) || 10;
+        const products = await getFullProductList();
+        // Sort by date descending
+        const sortedProducts = [...products].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+        const latest = sortedProducts.slice(0, limit);
+        return res.status(200).json(latest);
+    } catch (error) {
+        console.log("GetLatestProducts error:", error);
+        return res.status(500).json({ message: "Failed to get latest products" });
+    }
+};
+
+export const searchProducts = async (req, res) => {
+    try {
+        const query = (req.query.q || '').trim().toLowerCase();
+        if (!query || query.length < 2) {
+            return res.status(200).json([]);
+        }
+
+        const products = await getFullProductList();
+        const filtered = products.filter(product =>
+            (product.name && product.name.toLowerCase().includes(query)) ||
+            (product.category && product.category.toLowerCase().includes(query)) ||
+            (product.subCategory && product.subCategory.toLowerCase().includes(query))
+        );
+        
+        // Limit search results to avoid massive payloads
+        const limit = parseInt(req.query.limit) || 8;
+        return res.status(200).json(filtered.slice(0, limit));
+    } catch (error) {
+        console.log("SearchProducts error:", error);
+        return res.status(500).json({ message: "Failed to search products" });
+    }
+};
 
 export const removeProduct = async (req, res) => {
     try {
         let { id } = req.params;
         const product = await Product.findByIdAndDelete(id)
+        await cacheDel(PRODUCTS_CACHE_KEY);
         return res.status(200).json(product)
     } catch (error) {
         console.log("RemoveProduct error")
@@ -93,6 +246,7 @@ export const updateInventory = async (req, res) => {
             return res.status(404).json({ message: "Product not found" })
         }
 
+        await cacheDel(PRODUCTS_CACHE_KEY);
         return res.status(200).json(product)
     } catch (error) {
         console.log("UpdateInventory error:", error)
@@ -153,6 +307,8 @@ export const initializeAllInventory = async (req, res) => {
         }
 
         console.log(`📊 Total: ${products.length}, Updated: ${updated}, Already initialized: ${alreadyInitialized}`)
+
+        await cacheDel(PRODUCTS_CACHE_KEY);
 
         return res.status(200).json({
             message: `Inventory initialized for ${updated} products`,
@@ -232,6 +388,7 @@ export const updateProduct = async (req, res) => {
             { new: true }
         )
 
+        await cacheDel(PRODUCTS_CACHE_KEY);
         console.log(`✅ Product updated: ${updatedProduct.name}`)
         return res.status(200).json(updatedProduct)
 
@@ -282,6 +439,7 @@ export const addReview = async (req, res) => {
         product.totalReviews = product.reviews.length
 
         await product.save()
+        await cacheDel(PRODUCTS_CACHE_KEY);
 
         return res.status(201).json({
             message: "Review added successfully",
@@ -348,6 +506,7 @@ export const updateReview = async (req, res) => {
         product.averageRating = (totalRatings / product.reviews.length).toFixed(1)
 
         await product.save()
+        await cacheDel(PRODUCTS_CACHE_KEY);
 
         return res.status(200).json({
             message: "Review updated successfully",
@@ -392,6 +551,7 @@ export const deleteReview = async (req, res) => {
         }
 
         await product.save()
+        await cacheDel(PRODUCTS_CACHE_KEY);
 
         return res.status(200).json({
             message: "Review deleted successfully",

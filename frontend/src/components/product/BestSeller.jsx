@@ -1,20 +1,33 @@
 import React, { useContext, useEffect, useState, useRef, useCallback } from 'react'
 import Title from '@/components/common/Title'
+import { authDataContext } from '../../context/AuthContext'
 import { shopDataContext } from '@/context/ShopContext'
 import ProductCard from '@/components/product/ProductCard'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 function BestSeller() {
-    let {products} = useContext(shopDataContext)
+    let {serverUrl} = useContext(authDataContext) || { serverUrl: 'http://localhost:3000' }
     let [bestSeller,setBestSeller] = useState([])
     const scrollRef = useRef(null)
     const [canScrollLeft, setCanScrollLeft] = useState(false)
     const [canScrollRight, setCanScrollRight] = useState(true)
 
     useEffect(()=>{
-        let filterProduct = products.filter((item) => item.bestseller)
-        setBestSeller(filterProduct.slice(0,10));
-    },[products])
+        const fetchBestSellers = async () => {
+            try {
+                const res = await fetch(`${serverUrl}/api/product/bestsellers?limit=10`)
+                const data = await res.json()
+                if (Array.isArray(data)) {
+                    setBestSeller(data)
+                } else {
+                    setBestSeller([])
+                }
+            } catch (err) {
+                console.error("Error fetching best sellers:", err)
+            }
+        }
+        fetchBestSellers()
+    },[serverUrl])
 
     const checkScroll = useCallback(() => {
         const el = scrollRef.current

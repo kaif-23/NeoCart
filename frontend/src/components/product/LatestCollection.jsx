@@ -1,19 +1,33 @@
 import React, { useContext, useEffect, useState, useRef, useCallback } from 'react'
 import Title from '@/components/common/Title'
+import { authDataContext } from '../../context/AuthContext'
 import { shopDataContext } from '@/context/ShopContext'
 import ProductCard from '@/components/product/ProductCard'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 function LatestCollection() {
-    let {products} = useContext(shopDataContext)
+    let {serverUrl} = useContext(authDataContext) || { serverUrl: 'http://localhost:3000' }
     let [latestProducts,setLatestProducts] = useState([])
     const scrollRef = useRef(null)
     const [canScrollLeft, setCanScrollLeft] = useState(false)
     const [canScrollRight, setCanScrollRight] = useState(true)
 
     useEffect(()=>{
-        setLatestProducts(products.slice(0,10));
-    },[products])
+        const fetchLatest = async () => {
+            try {
+                const res = await fetch(`${serverUrl}/api/product/latest?limit=10`)
+                const data = await res.json()
+                if (Array.isArray(data)) {
+                    setLatestProducts(data)
+                } else {
+                    setLatestProducts([])
+                }
+            } catch (err) {
+                console.error("Error fetching latest products:", err)
+            }
+        }
+        fetchLatest()
+    },[serverUrl])
 
     const checkScroll = useCallback(() => {
         const el = scrollRef.current

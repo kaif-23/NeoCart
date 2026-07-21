@@ -1,4 +1,5 @@
 import User from '../models/userModel.js';
+import { cacheDel } from '../utils/cache.js';
 
 // Escape special regex characters to prevent ReDoS
 const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -111,6 +112,9 @@ export const promoteUser = async (req, res) => {
         user.promotedAt = new Date();
         await user.save();
 
+        // Invalidate user cache so the promoted user's next request sees the new role.
+        await cacheDel(`user:${id}`);
+
         return res.status(200).json({
             success: true,
             message: `${user.name} has been promoted to admin`,
@@ -171,6 +175,9 @@ export const demoteUser = async (req, res) => {
         user.promotedAt = null;
         await user.save();
 
+        // Invalidate user cache so the demoted user's next request sees the updated role.
+        await cacheDel(`user:${id}`);
+
         return res.status(200).json({
             success: true,
             message: `${user.name} has been demoted to regular user`,
@@ -228,6 +235,11 @@ export const toggleUserStatus = async (req, res) => {
 
         user.isActive = !user.isActive;
         await user.save();
+
+        // CRITICAL: Invalidate user cache immediately on status change.
+        // This ensures a deactivated user is rejected on their very next request,
+        // not after the TTL expires. (Step 4 safety check #2.)
+        await cacheDel(`user:${id}`);
 
         return res.status(200).json({
             success: true,

@@ -6,7 +6,8 @@ export const authDataContext= createContext()
 export const AuthContext = authDataContext
 
 function AuthProvider({children}) {
-    let serverUrl = import.meta.env.VITE_SERVER_URL || "https://neocart-backend.onrender.com"
+    // Dynamically use localhost for development and Render for production
+    let serverUrl = import.meta.env.VITE_SERVER_URL || (import.meta.env.DEV ? "http://localhost:3000" : "https://neocart-backend.onrender.com")
     
     // Token is stored in httpOnly cookie, so we don't need to manage it here
     // Backend will read it from cookies automatically

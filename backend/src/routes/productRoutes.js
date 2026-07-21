@@ -1,5 +1,5 @@
 import express from 'express'
-import { addProduct, listProduct, removeProduct, updateInventory, initializeAllInventory, updateProduct, addReview, getProductReviews, updateReview, deleteReview } from '../controllers/productController.js'
+import { addProduct, listProduct, removeProduct, updateInventory, initializeAllInventory, updateProduct, addReview, getProductReviews, updateReview, deleteReview, getProductById, getBestSellers, getLatestProducts, searchProducts } from '../controllers/productController.js'
 import upload from '../middlewares/multer.js'
 import adminAuth from "../middlewares/adminAuth.js"
 import isAuth from '../middlewares/isAuth.js'
@@ -25,6 +25,10 @@ productRoutes.post("/initialize-inventory", adminAuth, initializeAllInventory)
 
 // Public routes
 productRoutes.get("/list", listProduct)
+productRoutes.get("/search", searchProducts)
+productRoutes.get("/bestsellers", getBestSellers)
+productRoutes.get("/latest", getLatestProducts)
+productRoutes.get("/single/:id", getProductById)
 
 // Review routes
 productRoutes.post("/review/:productId", isAuth, addReview)

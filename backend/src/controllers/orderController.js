@@ -13,8 +13,9 @@ const razorpayInstance = new razorpay({
 })
 
 // Helper: calculate order amount server-side from validated product prices
-const calculateOrderAmount = async (items) => {
+export const calculateOrderAmount = async (items) => {
     let total = 0;
+    let lineItems = [];
     for (const item of items) {
         const product = await Product.findById(item.productId || item._id);
         if (!product) {
@@ -24,8 +25,18 @@ const calculateOrderAmount = async (items) => {
             throw new Error(`Invalid quantity for ${product.name}`);
         }
         total += product.price * item.quantity;
+        lineItems.push({
+            productId: item.productId || item._id,
+            size: item.size,
+            quantity: item.quantity,
+            price: product.price,
+            lineTotal: product.price * item.quantity,
+            name: product.name,
+            image: product.image1 ? [product.image1] : [],
+            inventory: product.inventory
+        });
     }
-    return total + DELIVERY_FEE;
+    return { subTotal: total, grandTotal: total + DELIVERY_FEE, amount: total + DELIVERY_FEE, lineItems };
 }
 
 // for User
@@ -37,7 +48,8 @@ export const placeOrder = async (req, res) => {
         // Recalculate amount server-side - never trust client amount
         let amount;
         try {
-            amount = await calculateOrderAmount(items);
+            const calculated = await calculateOrderAmount(items);
+            amount = calculated.amount;
         } catch (err) {
             return res.status(400).json({ message: err.message });
         }
@@ -123,7 +135,8 @@ export const placeOrderRazorpay = async (req, res) => {
         // Recalculate amount server-side - never trust client amount
         let amount;
         try {
-            amount = await calculateOrderAmount(items);
+            const calculated = await calculateOrderAmount(items);
+            amount = calculated.amount;
         } catch (err) {
             return res.status(400).json({ message: err.message });
         }

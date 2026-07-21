@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from 'react'
-import { shopDataContext } from '@/context/ShopContext'
+import { authDataContext } from '../../context/AuthContext'
 import Title from '@/components/common/Title'
 import ProductCard from '@/components/product/ProductCard'
 import { FaArrowRight } from 'react-icons/fa'
@@ -7,21 +7,29 @@ import { useNavigate } from 'react-router-dom'
 
 function RelatedProduct({category,subCategory,currentProductId }) {
 
-    let {products} = useContext(shopDataContext)
+    let {serverUrl} = useContext(authDataContext) || { serverUrl: 'http://localhost:3000' }
     let [related,setRelated] = useState([])
     let navigate = useNavigate()
 
     useEffect(()=>{
-     if(products.length > 0){
-
-        let productsCopy = products.slice()
-        productsCopy = productsCopy.filter((item) => category === item.category)
-        productsCopy = productsCopy.filter((item) => subCategory === item.subCategory)
-        productsCopy = productsCopy.filter((item) => currentProductId  !== item._id)
-        setRelated(productsCopy.slice(0,5))
-
-     }
-    },[products,category,subCategory,currentProductId])
+        const fetchRelated = async () => {
+            if (!category || !subCategory) return;
+            try {
+                const res = await fetch(`${serverUrl}/api/product/list?category=${category}&subCategory=${subCategory}&limit=10`)
+                const data = await res.json()
+                if (data && Array.isArray(data.products)) {
+                    let filtered = data.products.filter(item => item._id !== currentProductId)
+                    setRelated(filtered.slice(0, 5))
+                } else {
+                    let filtered = Array.isArray(data) ? data.filter(item => item._id !== currentProductId) : []
+                    setRelated(filtered.slice(0, 5))
+                }
+            } catch (error) {
+                console.error("Error fetching related products", error)
+            }
+        }
+        fetchRelated()
+    },[category,subCategory,currentProductId,serverUrl])
 
     if (related.length === 0) {
         return null // Don't show section if no related products

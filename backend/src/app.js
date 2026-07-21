@@ -44,7 +44,7 @@ const authLimiter = rateLimit({
 
 const productReadLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 200, // Higher limit for read-only operations
+    max: 200, // Limit to 200 product reads per windowMs
     message: "Too many product requests, please try again later.",
     standardHeaders: true,
     legacyHeaders: false,
@@ -125,6 +125,17 @@ app.use(cors(corsOptions));
 
 // Session timeout and auto-refresh middleware
 app.use(sessionTimeout);
+
+// ─── Request timing logger (keep for both baseline and after runs) ───────────
+app.use((req, res, next) => {
+    const start = Date.now();
+    res.on('finish', () => {
+        const duration = Date.now() - start;
+        console.log(`[TIMING] ${req.method} ${req.path} — ${duration}ms (${res.statusCode})`);
+    });
+    next();
+});
+// ─────────────────────────────────────────────────────────────────────────────
 
 // Routes with specific rate limiting
 app.use("/api/auth", authLimiter, authRoutes); // Strict: 5 req/15min for auth
